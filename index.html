@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Inabowt helps people discover local experiences and plan outings in Las Vegas."
+    />
+    <title>Inabowt | Get Out and About. Explore More.</title>
+    <link rel="stylesheet" href="css/styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div class="brand-block" aria-label="Inabowt home">
+          <img
+            class="brand-logo"
+            src="assets/images/logo.png"
+            alt="Inabowt logo"
+          />
+        </div>
+
+        <nav class="primary-nav" aria-label="Main navigation">
+          <button class="nav-button is-active" data-screen="discover" type="button">
+            Discover
+          </button>
+          <button class="nav-button" data-screen="plans" type="button">
+            My Plans
+          </button>
+          <button class="nav-button" data-screen="profile" type="button">
+            Profile
+          </button>
+        </nav>
+
+        <div class="location-pill" aria-label="Current location: Las Vegas, Nevada">
+          <span class="location-dot"></span>
+          <span>Las Vegas, NV</span>
+        </div>
+      </header>
+
+      <main class="page-shell">
+        <section id="discover-page" class="screen is-active" aria-label="Discover screen">
+          <section class="hero-panel">
+            <div class="hero-copy">
+              <p class="eyebrow">Discover local experiences</p>
+              <h1>Find your next memorable night out in Las Vegas.</h1>
+              <p class="hero-text">
+                Explore food, culture, adventure, and people-powered outings designed to help you get out and about.
+              </p>
+              <div class="hero-actions">
+                <button class="primary-button" id="explore-outings" type="button">
+                  Explore Outings
+                </button>
+                <button class="secondary-button" id="open-create-placeholder" type="button">
+                  Create an Outing
+                </button>
+              </div>
+            </div>
+          </section>
+
+          <section class="controls-panel" aria-label="Search and filters">
+            <label class="search-field" for="search-input">
+              <span class="sr-only">Search outings</span>
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M10.5 3a7.5 7.5 0 015.93 12.72l4.57 4.57 1.41-1.41-4.57-4.57A7.5 7.5 0 1110.5 3zm0 2a5.5 5.5 0 104.5 9.5 5.5 5.5 0 00-4.5-9.5z"/>
+              </svg>
+              <input id="search-input" type="search" placeholder="Search outings, neighborhoods, or vibes" />
+            </label>
+
+            <div class="filter-row" id="filter-row" aria-label="Category filters"></div>
+          </section>
+
+          <section class="feed-header" aria-label="Outing feed header">
+            <div>
+              <p class="eyebrow">Today in Las Vegas</p>
+              <h2>Open outings near you</h2>
+            </div>
+            <span class="feed-meta" id="feed-count">0 outings</span>
+          </section>
+
+          <section id="outing-feed" class="outing-feed" aria-live="polite"></section>
+        </section>
+
+        <section id="plans-page" class="screen" aria-label="My Plans screen">
+          <div class="placeholder-panel">
+            <p class="eyebrow">My Plans</p>
+            <h2>Your upcoming outings</h2>
+            <p>
+              This area is a placeholder for your saved plans and confirmed outings. The full itinerary experience is coming next.
+            </p>
+          </div>
+        </section>
+
+        <section id="profile-page" class="screen" aria-label="Profile screen">
+          <div class="placeholder-panel">
+            <p class="eyebrow">Profile</p>
+            <h2>Tell us what you like</h2>
+            <p>
+              A future profile experience will store preferences, social intent, and your favorite activity styles.
+            </p>
+          </div>
+        </section>
+      </main>
+
+      <nav class="mobile-nav" aria-label="Mobile navigation">
+        <button class="mobile-nav-button is-active" data-screen="discover" type="button">
+          <span>Discover</span>
+        </button>
+        <button class="mobile-nav-button" data-screen="plans" type="button">
+          <span>My Plans</span>
+        </button>
+        <button class="mobile-nav-button" data-screen="profile" type="button">
+          <span>Profile</span>
+        </button>
+      </nav>
+    </div>
+
+    <div id="details-modal" class="modal hidden" aria-hidden="true">
+      <div class="modal-backdrop" data-close-modal="details-modal"></div>
+      <div class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="details-title">
+        <button class="modal-close" type="button" data-close-modal="details-modal" aria-label="Close details">
+          ×
+        </button>
+        <div id="details-content"></div>
+      </div>
+    </div>
+
+    <div id="create-modal" class="modal hidden" aria-hidden="true">
+      <div class="modal-backdrop" data-close-modal="create-modal"></div>
+      <div class="modal-panel create-panel" role="dialog" aria-modal="true" aria-labelledby="create-title">
+        <button class="modal-close" type="button" data-close-modal="create-modal" aria-label="Close create outing panel">
+          ×
+        </button>
+        <p class="eyebrow">Prototype</p>
+        <h2 id="create-title">Create an Outing</h2>
+        <p>
+          The full outing-creation workflow is still in progress. This prototype is a placeholder for the next step in the product roadmap.
+        </p>
+        <button class="primary-button" type="button" data-close-modal="create-modal">
+          Back to Discover
+        </button>
+      </div>
+    </div>
+
+    <script src="js/data.js"></script>
+    <script src="js/app.js"></script>
+  </body>
+</html>
