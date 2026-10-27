@@ -45,17 +45,6 @@
             <div class="hero-copy">
               <p class="eyebrow">Discover local experiences</p>
               <h1>Find your next memorable night out in Las Vegas.</h1>
-              <p class="hero-text">
-                Explore food, culture, adventure, and people-powered outings designed to help you get out and about.
-              </p>
-              <div class="hero-actions">
-                <button class="primary-button" id="explore-outings" type="button">
-                  Explore Outings
-                </button>
-                <button class="secondary-button" id="open-create-placeholder" type="button">
-                  Create an Outing
-                </button>
-              </div>
             </div>
           </section>
 
@@ -68,16 +57,38 @@
               <input id="search-input" type="search" placeholder="Search outings, neighborhoods, or vibes" />
             </label>
 
-            <div class="filter-row" id="filter-row" aria-label="Category filters"></div>
+            <div class="category-select-wrap">
+              <label class="sr-only" for="category-select">Select a category</label>
+              <select id="category-select" class="category-select" aria-label="Select a category">
+                <option value="All">All</option>
+                <option value="Food &amp; Drinks">Food &amp; Drinks</option>
+                <option value="Outdoors">Outdoors</option>
+                <option value="Games">Games</option>
+                <option value="Entertainment">Entertainment</option>
+                <option value="Arts &amp; Culture">Arts &amp; Culture</option>
+                <option value="Unique Experiences">Unique Experiences</option>
+              </select>
+            </div>
           </section>
 
           <section class="feed-header" aria-label="Outing feed header">
             <div>
-              <p class="eyebrow">Today in Las Vegas</p>
-              <h2>Open outings near you</h2>
+              <p class="eyebrow">What’s to do in Las Vegas</p>
+              <h2>UPCOMING LOCAL OUTINGS</h2>
             </div>
             <span class="feed-meta" id="feed-count">0 outings</span>
           </section>
+
+          <div class="outing-type-toggle" role="tablist" aria-label="Outing type toggle">
+            <button type="button" class="outing-type-option is-active" data-outing-type="OPEN_OUTING" role="tab" aria-selected="true">
+              <span class="toggle-label">Open Outings</span>
+              <small>Open to everyone. No invitation necessary.</small>
+            </button>
+            <button type="button" class="outing-type-option" data-outing-type="PUBLIC_OUTING" role="tab" aria-selected="false">
+              <span class="toggle-label">Public Outings</span>
+              <small>Express interest. Get selected. Join the experience.</small>
+            </button>
+          </div>
 
           <section id="outing-feed" class="outing-feed" aria-live="polite"></section>
         </section>
@@ -115,6 +126,10 @@
         </button>
       </nav>
     </div>
+
+    <button class="floating-create-button" id="open-create-placeholder" type="button">
+      Create an Outing
+    </button>
 
     <div id="details-modal" class="modal hidden" aria-hidden="true">
       <div class="modal-backdrop" data-close-modal="details-modal"></div>
