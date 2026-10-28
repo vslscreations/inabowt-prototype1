@@ -11,6 +11,8 @@ const createPreviewPanel = document.getElementById("create-preview-panel");
 const createFormActions = document.getElementById("create-form-actions");
 const createPublishActions = document.getElementById("create-publish-actions");
 const createToast = document.getElementById("creation-toast");
+const createImageFileInput = document.getElementById("create-image-file");
+const createImageField = document.getElementById("create-image-field");
 const categorySelect = document.getElementById("category-select");
 const navButtons = document.querySelectorAll("[data-screen]");
 const screens = {
@@ -114,7 +116,13 @@ function normalizeImageValue(rawValue) {
     return value;
   }
 
-  if (value.startsWith("http://") || value.startsWith("https://") || value.startsWith("/") || value.startsWith("assets/")) {
+  if (
+    value.startsWith("http://") ||
+    value.startsWith("https://") ||
+    value.startsWith("/") ||
+    value.startsWith("assets/") ||
+    value.startsWith("data:")
+  ) {
     return `url('${value.replace(/'/g, "\\'")}')`;
   }
 
@@ -548,11 +556,37 @@ function setCreateType(type) {
 function resetCreateForm() {
   clearCreateErrors();
   createForm.reset();
+  if (createImageFileInput) createImageFileInput.value = "";
+  if (createImageField) createImageField.value = "";
   setCreateType("OPEN_OUTING");
   createPreviewPanel.classList.add("hidden");
   createPreviewPanel.innerHTML = "";
   createFormActions.classList.remove("hidden");
   createPublishActions.classList.add("hidden");
+}
+
+async function handleCreateImageSelection(event) {
+  const file = event.target.files && event.target.files[0];
+  if (!file) {
+    if (createImageField) createImageField.value = "";
+    return;
+  }
+
+  try {
+    const dataUrl = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result || ""));
+      reader.onerror = () => reject(new Error("Unable to read image file."));
+      reader.readAsDataURL(file);
+    });
+
+    if (createImageField) {
+      createImageField.value = dataUrl;
+    }
+  } catch (error) {
+    if (createImageField) createImageField.value = "";
+    showToast("We couldn't load that image. Please try another one.");
+  }
 }
 
 function showToast(message) {
@@ -596,8 +630,7 @@ function validateCreateForm() {
     ["time", data.time, "Please choose a start time."],
     ["location", data.location, "Please add a general location."],
     ["cost", data.cost, "Please add an estimated cost."],
-    ["capacity", data.capacity, "Please add participant capacity."],
-    ["image", data.image, "Please add a cover image or local image path."]
+    ["capacity", data.capacity, "Please add participant capacity."]
   ];
 
   requiredFields.forEach(([field, value, message]) => {
@@ -611,7 +644,7 @@ function validateCreateForm() {
   }
 
   if (data.image && !/^(https?:\/\/|\/|assets\/|data:)/i.test(data.image)) {
-    errors.image = "Use a valid URL, local asset path, or a relative asset path.";
+    errors.image = "Use a valid image path or upload a file.";
   }
 
   if (data.outingType === "PRIVATE_OUTING") {
@@ -768,6 +801,10 @@ function handleOpenCreatePlaceholder() {
   resetCreateForm();
   createModal.classList.remove("hidden");
   createModal.setAttribute("aria-hidden", "false");
+}
+
+if (createImageFileInput) {
+  createImageFileInput.addEventListener("change", handleCreateImageSelection);
 }
 
 searchInput.addEventListener("input", (event) => {

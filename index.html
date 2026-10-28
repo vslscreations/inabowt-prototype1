@@ -252,8 +252,9 @@
                 </label>
 
                 <label class="field-group">
-                  <span>Cover image URL</span>
-                  <input id="create-image-field" name="image" type="url" placeholder="assets/images/Player1.png or https://example.com/photo.jpg" />
+                  <span>Cover image</span>
+                  <input id="create-image-file" name="imageFile" type="file" accept="image/*" />
+                  <input id="create-image-field" name="image" type="hidden" />
                   <small class="error-message" data-error-for="image"></small>
                 </label>
               </div>
