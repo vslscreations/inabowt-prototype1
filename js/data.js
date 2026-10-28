@@ -208,3 +208,81 @@ const outings = [
     attendance: "25 interested"
   }
 ];
+
+const demoInvitations = [
+  {
+    id: "invite-desert-bloom",
+    eventId: "desert-bloom",
+    title: "Desert Bloom Walk",
+    category: "Outdoors",
+    date: "2026-11-04T07:45",
+    location: "Red Rock Scenic Loop",
+    image: "linear-gradient(135deg, rgba(0, 230, 207, 0.72), rgba(5, 15, 35, 0.4)), radial-gradient(circle at 60% 20%, rgba(255,255,255,0.24), transparent 22%), linear-gradient(180deg, rgba(5, 20, 25, 0.2), rgba(3, 8, 15, 0.82))",
+    outingType: "OPEN_OUTING",
+    description: "A sunrise Desert Bloom Walk with an easy route, coffee meetup, and a relaxed pace built for new connections.",
+    creatorName: "Desert Routes"
+  },
+  {
+    id: "invite-culture-lab",
+    eventId: "culture-lab",
+    title: "Culture Lab Session",
+    category: "Arts & Culture",
+    date: "2026-11-14T17:30",
+    location: "The District at Green Valley",
+    image: "linear-gradient(135deg, rgba(8, 102, 255, 0.58), rgba(0, 230, 207, 0.28)), radial-gradient(circle at 30% 20%, rgba(255,255,255,0.2), transparent 18%), linear-gradient(180deg, rgba(4,8,16,0.2), rgba(4,8,16,0.8))",
+    outingType: "PUBLIC_OUTING",
+    description: "A small creative lab session focused on thoughtful conversation, local culture, and hands-on workshops.",
+    creatorName: "Northline Collective"
+  },
+  {
+    id: "invite-night-market",
+    eventId: "night-market",
+    title: "Night Market Stroll",
+    category: "Food & Drinks",
+    date: "2026-11-15T18:00",
+    location: "Fremont Street",
+    image: "linear-gradient(135deg, rgba(8, 102, 255, 0.76), rgba(0, 230, 207, 0.22)), radial-gradient(circle at 60% 25%, rgba(255,255,255,0.24), transparent 18%), linear-gradient(180deg, rgba(4,8,16,0.2), rgba(4,8,16,0.8))",
+    outingType: "PUBLIC_OUTING",
+    description: "An easy evening route through food stalls, live music, and small-batch vendors with room to wander and connect.",
+    creatorName: "Fremont Food Club"
+  }
+];
+
+const demoPastOutings = [
+  {
+    id: "past-neon-cinema",
+    eventId: "neon-cinema-social",
+    title: "Neon Cinema Social",
+    category: "Entertainment",
+    date: "2026-10-08T20:45",
+    location: "South Strip",
+    image: "linear-gradient(135deg, rgba(0, 217, 255, 0.72), rgba(18, 20, 52, 0.7)), radial-gradient(circle at 60% 25%, rgba(255,255,255,0.25), transparent 18%), linear-gradient(180deg, rgba(4,8,16,0.2), rgba(4,8,16,0.8))",
+    outingType: "PUBLIC_OUTING",
+    description: "The group watched a late screening and closed out the night with a casual coffee stop afterward.",
+    creatorName: "Afterglow Cinema Club"
+  },
+  {
+    id: "past-laser-pool",
+    eventId: "laser-pool",
+    title: "After-Hours Poolside Glow",
+    category: "Unique Experiences",
+    date: "2026-10-11T21:30",
+    location: "Downtown Rooftop",
+    image: "linear-gradient(135deg, rgba(0, 217, 255, 0.64), rgba(0, 230, 207, 0.2)), radial-gradient(circle at 70% 20%, rgba(255,255,255,0.25), transparent 18%), linear-gradient(180deg, rgba(4,8,16,0.2), rgba(4,8,16,0.8))",
+    outingType: "OPEN_OUTING",
+    description: "A rooftop social with low light, music, and a relaxed post-work hangout that felt easy from the first minute.",
+    creatorName: "Skyline Social"
+  },
+  {
+    id: "past-art-after-dark",
+    eventId: "art-after-dark",
+    title: "Art After Dark",
+    category: "Arts & Culture",
+    date: "2026-10-14T19:15",
+    location: "Arts District",
+    image: "linear-gradient(135deg, rgba(8, 102, 255, 0.62), rgba(0, 230, 207, 0.3)), radial-gradient(circle at 35% 20%, rgba(255,255,255,0.18), transparent 18%), linear-gradient(180deg, rgba(3,10,18,0.2), rgba(3,8,16,0.8))",
+    outingType: "OPEN_OUTING",
+    description: "A gallery walk through the district with plenty of room to talk, browse, and discover something new.",
+    creatorName: "Lantern Studio"
+  }
+];

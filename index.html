@@ -94,12 +94,29 @@
         </section>
 
         <section id="plans-page" class="screen" aria-label="My Plans screen">
-          <div class="placeholder-panel">
-            <p class="eyebrow">My Plans</p>
-            <h2>Your upcoming outings</h2>
-            <p>
-              This area is a placeholder for your saved plans and confirmed outings. The full itinerary experience is coming next.
-            </p>
+          <div class="plans-shell">
+            <div class="plans-header">
+              <p class="eyebrow">My Plans</p>
+              <h2>Your next adventures</h2>
+              <p>Track confirmed outings, event interest, and the invitations waiting for your response.</p>
+            </div>
+
+            <div class="plans-tabs" role="tablist" aria-label="My plans sections">
+              <button type="button" class="plan-tab is-active" data-plan-tab="UPCOMING" role="tab" aria-selected="true">
+                Upcoming
+              </button>
+              <button type="button" class="plan-tab" data-plan-tab="PENDING" role="tab" aria-selected="false">
+                Pending
+              </button>
+              <button type="button" class="plan-tab" data-plan-tab="INVITATIONS" role="tab" aria-selected="false">
+                Invitations
+              </button>
+              <button type="button" class="plan-tab" data-plan-tab="PAST" role="tab" aria-selected="false">
+                Past
+              </button>
+            </div>
+
+            <div id="plans-content" class="plans-content" aria-live="polite"></div>
           </div>
         </section>
 
@@ -147,16 +164,199 @@
         <button class="modal-close" type="button" data-close-modal="create-modal" aria-label="Close create outing panel">
           ×
         </button>
-        <p class="eyebrow">Prototype</p>
-        <h2 id="create-title">Create an Outing</h2>
-        <p>
-          The full outing-creation workflow is still in progress. This prototype is a placeholder for the next step in the product roadmap.
-        </p>
-        <button class="primary-button" type="button" data-close-modal="create-modal">
-          Back to Discover
-        </button>
+
+        <div id="create-form-shell">
+          <p class="eyebrow">Prototype</p>
+          <h2 id="create-title">Create an Outing</h2>
+
+          <form id="create-outing-form" novalidate>
+            <div class="create-type-grid" aria-label="Choose an outing type">
+              <button type="button" class="create-type-option is-selected" data-create-type="OPEN_OUTING" aria-pressed="true">
+                <span class="create-type-title">Open Outing</span>
+                <small>Open to everyone. No invitation necessary.</small>
+              </button>
+              <button type="button" class="create-type-option" data-create-type="PUBLIC_OUTING" aria-pressed="false">
+                <span class="create-type-title">Public Outing</span>
+                <small>Express interest and get selected by the host.</small>
+              </button>
+              <button type="button" class="create-type-option" data-create-type="PRIVATE_OUTING" aria-pressed="false">
+                <span class="create-type-title">Private Outing</span>
+                <small>Invitation-only for your selected invitees.</small>
+              </button>
+            </div>
+
+            <div id="create-form-fields" class="create-form-fields">
+              <div class="field-grid">
+                <label class="field-group">
+                  <span>Outing title</span>
+                  <input id="create-title-field" name="title" type="text" maxlength="80" placeholder="e.g. Sunset chess club" />
+                  <small class="error-message" data-error-for="title"></small>
+                </label>
+
+                <label class="field-group">
+                  <span>Category</span>
+                  <select id="create-category-field" name="category">
+                    <option value="">Select a category</option>
+                    <option value="Food &amp; Drinks">Food &amp; Drinks</option>
+                    <option value="Outdoors">Outdoors</option>
+                    <option value="Games">Games</option>
+                    <option value="Entertainment">Entertainment</option>
+                    <option value="Arts &amp; Culture">Arts &amp; Culture</option>
+                    <option value="Unique Experiences">Unique Experiences</option>
+                  </select>
+                  <small class="error-message" data-error-for="category"></small>
+                </label>
+              </div>
+
+              <label class="field-group">
+                <span>Description</span>
+                <textarea id="create-description-field" name="description" rows="4" maxlength="280" placeholder="What makes this outing worth joining?"></textarea>
+                <small class="error-message" data-error-for="description"></small>
+              </label>
+
+              <div class="field-grid two-col">
+                <label class="field-group">
+                  <span>Date</span>
+                  <input id="create-date-field" name="date" type="date" />
+                  <small class="error-message" data-error-for="date"></small>
+                </label>
+
+                <label class="field-group">
+                  <span>Start time</span>
+                  <input id="create-time-field" name="time" type="time" />
+                  <small class="error-message" data-error-for="time"></small>
+                </label>
+              </div>
+
+              <div class="field-grid two-col">
+                <label class="field-group">
+                  <span>General location</span>
+                  <input id="create-location-field" name="location" type="text" maxlength="100" placeholder="Downtown Arts District" />
+                  <small class="error-message" data-error-for="location"></small>
+                </label>
+
+                <label class="field-group">
+                  <span>Estimated cost</span>
+                  <input id="create-cost-field" name="cost" type="text" maxlength="40" placeholder="$15–$35" />
+                  <small class="error-message" data-error-for="cost"></small>
+                </label>
+              </div>
+
+              <div class="field-grid two-col">
+                <label class="field-group">
+                  <span>Participant capacity</span>
+                  <input id="create-capacity-field" name="capacity" type="number" min="2" max="200" placeholder="12" />
+                  <small class="error-message" data-error-for="capacity"></small>
+                </label>
+
+                <label class="field-group">
+                  <span>Cover image URL</span>
+                  <input id="create-image-field" name="image" type="url" placeholder="assets/images/Player1.png or https://example.com/photo.jpg" />
+                  <small class="error-message" data-error-for="image"></small>
+                </label>
+              </div>
+
+              <div class="create-type-panel" data-type-panel="OPEN_OUTING">
+                <label class="field-group">
+                  <span>Participation requirements</span>
+                  <textarea id="create-open-requirements" name="openRequirements" rows="3" maxlength="180" placeholder="Optional: friendly, beginner-friendly, or calm vibe"></textarea>
+                </label>
+              </div>
+
+              <div class="create-type-panel" data-type-panel="PUBLIC_OUTING">
+                <label class="field-group">
+                  <span>Selection notes</span>
+                  <textarea id="create-public-notes" name="publicNotes" rows="3" maxlength="180" placeholder="Optional: who should express interest or what vibe should stand out"></textarea>
+                </label>
+              </div>
+
+              <div class="create-type-panel" data-type-panel="PRIVATE_OUTING">
+                <div class="field-grid two-col">
+                  <label class="field-group">
+                    <span>Preferred activities</span>
+                    <input id="create-private-activities" name="privateActivities" type="text" maxlength="80" placeholder="Board games, low-key social, wellness" />
+                    <small class="error-message" data-error-for="privateActivities"></small>
+                  </label>
+
+                  <label class="field-group">
+                    <span>Availability</span>
+                    <input id="create-private-availability" name="privateAvailability" type="text" maxlength="80" placeholder="Evenings, weekends, flexible" />
+                    <small class="error-message" data-error-for="privateAvailability"></small>
+                  </label>
+                </div>
+
+                <div class="field-grid two-col">
+                  <label class="field-group">
+                    <span>Approximate location radius</span>
+                    <input id="create-private-radius" name="privateRadius" type="text" maxlength="50" placeholder="Within 10 miles" />
+                    <small class="error-message" data-error-for="privateRadius"></small>
+                  </label>
+
+                  <label class="field-group">
+                    <span>Invite-only criteria</span>
+                    <input id="create-private-criteria" name="privateCriteria" type="text" maxlength="80" placeholder="Casual social energy, similar interests" />
+                    <small class="error-message" data-error-for="privateCriteria"></small>
+                  </label>
+                </div>
+
+                <div class="private-matching-box">
+                  <div class="private-matching-header">
+                    <span>Suggested matches</span>
+                    <small>Prototype matching preview</small>
+                  </div>
+                  <div class="private-profile-list">
+                    <label class="private-profile-item">
+                      <input type="checkbox" class="private-profile-checkbox" value="maya-chen" />
+                      <span>
+                        <strong>Maya C.</strong>
+                        <small>Games · Evenings · Downtown</small>
+                      </span>
+                    </label>
+                    <label class="private-profile-item">
+                      <input type="checkbox" class="private-profile-checkbox" value="leo-ramos" />
+                      <span>
+                        <strong>Leo R.</strong>
+                        <small>Outdoors · Weekends · Westside</small>
+                      </span>
+                    </label>
+                    <label class="private-profile-item">
+                      <input type="checkbox" class="private-profile-checkbox" value="sasha-park" />
+                      <span>
+                        <strong>Sasha P.</strong>
+                        <small>Food &amp; Drinks · Flexible · Midtown</small>
+                      </span>
+                    </label>
+                    <label class="private-profile-item">
+                      <input type="checkbox" class="private-profile-checkbox" value="omar-jones" />
+                      <span>
+                        <strong>Omar J.</strong>
+                        <small>Arts &amp; Culture · Weeknights · Summerlin</small>
+                      </span>
+                    </label>
+                  </div>
+                  <small class="error-message" data-error-for="privateMatches"></small>
+                </div>
+              </div>
+            </div>
+
+            <div id="create-preview-panel" class="create-preview-panel hidden" aria-live="polite"></div>
+
+            <div id="create-form-actions" class="create-actions">
+              <button type="button" class="secondary-button" data-close-modal="create-modal">Cancel</button>
+              <button type="button" class="primary-button" id="create-preview-button">Preview</button>
+            </div>
+
+            <div id="create-publish-actions" class="create-actions hidden">
+              <button type="button" class="secondary-button" id="create-back-button">Back</button>
+              <button type="button" class="secondary-button" data-close-modal="create-modal">Cancel</button>
+              <button type="button" class="primary-button" id="create-publish-button">Publish</button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
+
+    <div id="creation-toast" class="creation-toast hidden" role="status" aria-live="polite"></div>
 
     <script src="js/data.js"></script>
     <script src="js/app.js"></script>
