@@ -118,11 +118,16 @@ const state = {
   activePlansTab: "UPCOMING",
   discoverView: "regular",
   calendarMonth: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
+  calendarSelectedDate: new Date().toISOString().slice(0, 10),
   createdOutings: [],
   createdByUser: {},
   persistedOutings: [],
   ...loadSavedState()
 };
+
+if (!state.calendarSelectedDate) {
+  state.calendarSelectedDate = new Date().toISOString().slice(0, 10);
+}
 
 if (Array.isArray(state.persistedOutings) && state.persistedOutings.length) {
   state.persistedOutings.forEach((persistedOuting) => {
@@ -181,13 +186,23 @@ function getSortedOutings(list) {
 }
 
 function getLocationCoords(outing) {
-  const locationString = outing?.location || "";
-  const direct = outing?.coordinates || locationCoordinates[locationString];
+  const direct = outing?.coordinates;
   if (direct && typeof direct.lat === "number" && typeof direct.lng === "number") {
-    return { lat: direct.lat, lng: direct.lng, type: direct.type || "area" };
+    return { lat: direct.lat, lng: direct.lng, type: direct.type || "exact address" };
   }
 
-  const fallback = locationCoordinates[locationString] || { lat: 36.1699, lng: -115.1398, type: "area" };
+  const addressString = String(outing?.address || outing?.location || "").trim();
+  const exactAddress = addressString ? locationCoordinates[addressString] : null;
+  if (exactAddress && typeof exactAddress.lat === "number" && typeof exactAddress.lng === "number") {
+    return { lat: exactAddress.lat, lng: exactAddress.lng, type: exactAddress.type || "address" };
+  }
+
+  const namedLocation = outing?.location ? locationCoordinates[outing.location] : null;
+  if (namedLocation && typeof namedLocation.lat === "number" && typeof namedLocation.lng === "number") {
+    return { lat: namedLocation.lat, lng: namedLocation.lng, type: namedLocation.type || "area" };
+  }
+
+  const fallback = { lat: 36.1699, lng: -115.1398, type: "area" };
   return { lat: fallback.lat, lng: fallback.lng, type: fallback.type || "area" };
 }
 
@@ -287,7 +302,7 @@ function setMediaBackground(element, imageValue, fallbackValue) {
   image.src = source;
 }
 
-function getVisibleOutings() {
+function getVisibleOutings(includePast = false) {
   const todayStart = startOfToday().getTime();
   return getSortedOutings(
     outings.filter((outing) => {
@@ -301,9 +316,9 @@ function getVisibleOutings() {
         state.activeCategory === "All" || outing.category === state.activeCategory;
       const haystack = `${outing.title} ${outing.location} ${outing.description} ${outing.category} ${outing.creatorName}`.toLowerCase();
       const matchesSearch = haystack.includes(state.searchTerm.toLowerCase());
-      const isUpcoming = getEventDateValue(outing) >= todayStart;
+      const isWithinTimeWindow = includePast || getEventDateValue(outing) >= todayStart;
 
-      return matchesType && matchesCategory && matchesSearch && isUpcoming;
+      return matchesType && matchesCategory && matchesSearch && isWithinTimeWindow;
     })
   );
 }
@@ -451,7 +466,7 @@ function renderCalendarView() {
   const monthName = new Intl.DateTimeFormat("en-US", { month: "long", year: "numeric" }).format(monthDate);
   monthLabel.textContent = monthName;
 
-  const visibleEvents = getVisibleOutings();
+  const visibleEvents = getVisibleOutings(true);
   const firstDay = new Date(monthDate.getFullYear(), monthDate.getMonth(), 1);
   const startOffset = firstDay.getDay();
   const calendarStart = new Date(firstDay);
@@ -515,16 +530,35 @@ function renderMapView() {
     return;
   }
 
+  const lasVegasBounds = [
+    [35.9, -115.6],
+    [36.5, -114.8]
+  ];
+
   if (!mapContainer._inabowtMap) {
-    const map = window.L.map("discover-map", { zoomControl: true, scrollWheelZoom: true }).setView([36.1699, -115.1398], 10);
-    window.L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution: "&copy; OpenStreetMap contributors",
-      maxZoom: 18
+    const map = window.L.map("discover-map", {
+      zoomControl: true,
+      scrollWheelZoom: true,
+      minZoom: 9,
+      maxZoom: 13,
+      maxBounds: lasVegasBounds,
+      maxBoundsViscosity: 1.0,
+      attributionControl: false
+    }).setView([36.1699, -115.1398], 10.5);
+
+    window.L.tileLayer("https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png", {
+      attribution: '&copy; OpenStreetMap contributors &copy; Stadia Maps',
+      maxZoom: 20,
+      noWrap: true,
+      subdomains: "abcd"
     }).addTo(map);
+
     mapContainer._inabowtMap = map;
   }
 
   const map = mapContainer._inabowtMap;
+  map.setMaxBounds(lasVegasBounds);
+  map.setView([36.1699, -115.1398], 10.5);
   map.eachLayer((layer) => {
     if (layer instanceof window.L.Marker) {
       map.removeLayer(layer);
@@ -545,18 +579,39 @@ function renderMapView() {
 
   const bounds = [];
   validCoords.forEach(({ outing, point }) => {
-    const marker = window.L.marker([point.lat, point.lng]).addTo(map);
-    marker.bindPopup(`<strong>${outing.title}</strong><br>${outing.location}<br><button type="button" class="map-popup-button" data-map-id="${outing.id}">View details</button>`);
+    const marker = window.L.marker([point.lat, point.lng], {
+      title: outing.title
+    }).addTo(map);
+
+    const participantCount = outing.capacity ? `${outing.capacity} spots` : "Flexible";
+    const popupHtml = `
+      <div class="map-popup-card">
+        <div class="map-popup-badge">${outing.category}</div>
+        <h3>${outing.title}</h3>
+        <p class="map-popup-location">${outing.location}</p>
+        <div class="map-popup-stats">
+          <span>${formatDate(outing.date)}</span>
+          <span>${formatTime(outing.date)}</span>
+          <span>${participantCount}</span>
+        </div>
+        <button type="button" class="map-popup-button" data-map-id="${outing.id}">View details</button>
+      </div>
+    `;
+
+    marker.bindPopup(popupHtml);
+    marker.on("popupopen", (event) => {
+      const popupButton = event.popup.getElement()?.querySelector(".map-popup-button");
+      if (!popupButton) return;
+
+      popupButton.addEventListener("click", () => {
+        openEventDetails(popupButton.dataset.mapId);
+      });
+    });
+
     bounds.push([point.lat, point.lng]);
   });
 
-  map.fitBounds(bounds, { padding: [36, 36], maxZoom: 12 });
-
-  mapContainer.querySelectorAll(".map-popup-button").forEach((button) => {
-    button.addEventListener("click", () => {
-      openEventDetails(button.dataset.mapId);
-    });
-  });
+  map.fitBounds(lasVegasBounds, { padding: [24, 24] });
 }
 
 function renderOutings() {
@@ -627,16 +682,13 @@ function renderOutings() {
   });
 
   outingFeed.querySelectorAll(".outing-card").forEach((card) => {
-    card.addEventListener("click", () => {
-      openEventDetails(card.dataset.id);
-    });
-
-    card.addEventListener("keydown", (event) => {
-      if (event.key === "Enter" || event.key === " ") {
-        event.preventDefault();
+    const viewDetailsButton = card.querySelector(".card-link");
+    if (viewDetailsButton) {
+      viewDetailsButton.addEventListener("click", (event) => {
+        event.stopPropagation();
         openEventDetails(card.dataset.id);
-      }
-    });
+      });
+    }
   });
 }
 
@@ -994,14 +1046,15 @@ function validateCreateForm() {
     openRequirements: document.getElementById("create-open-requirements").value.trim(),
     publicNotes: document.getElementById("create-public-notes").value.trim(),
     publicTags: normalizePublicTags(document.getElementById("create-public-tags")?.value || ""),
-    privateActivities: document.getElementById("create-private-activities").value.trim(),
-    privateAvailability: document.getElementById("create-private-availability").value.trim(),
-    privateRadius: document.getElementById("create-private-radius").value.trim(),
-    privateCriteria: document.getElementById("create-private-criteria").value.trim()
+    privateTags: normalizePublicTags(document.getElementById("create-private-tags")?.value || "")
   };
 
   const selectedTypeButton = document.querySelector(".create-type-option.is-selected");
   data.outingType = selectedTypeButton ? selectedTypeButton.dataset.createType : "OPEN_OUTING";
+
+  if (data.outingType === "PRIVATE_OUTING") {
+    data.publicTags = [...data.privateTags];
+  }
 
   const errors = {};
   const requiredFields = [
@@ -1010,7 +1063,7 @@ function validateCreateForm() {
     ["description", data.description, "Please add a short description."],
     ["date", data.date, "Please choose a date."],
     ["time", data.time, "Please choose a start time."],
-    ["location", data.location, "Please add a general location."],
+    ["location", data.location, "Please add a specific address or cross streets."],
     ["cost", data.cost, "Please add an estimated cost."],
     ["capacity", data.capacity, "Please add participant capacity."]
   ];
@@ -1029,27 +1082,14 @@ function validateCreateForm() {
     errors.image = "Use a valid image path or upload a file.";
   }
 
-  if (data.outingType === "PUBLIC_OUTING") {
-    if (data.publicTags.length !== 3) {
-      errors.publicTags = "Public outings need exactly three one-word tags.";
-    } else if (new Set(data.publicTags.map((tag) => tag.toLowerCase())).size !== 3) {
-      errors.publicTags = "Public outing tags must be unique and one word each.";
-    }
-  }
+  if (data.outingType === "PUBLIC_OUTING" || data.outingType === "PRIVATE_OUTING") {
+    const tagFieldName = data.outingType === "PUBLIC_OUTING" ? "publicTags" : "privateTags";
+    const tagErrorField = data.outingType === "PUBLIC_OUTING" ? "publicTags" : "privateTags";
 
-  if (data.outingType === "PRIVATE_OUTING") {
-    [
-      ["privateActivities", data.privateActivities, "Please add preferred activities."],
-      ["privateAvailability", data.privateAvailability, "Please add availability preferences."],
-      ["privateRadius", data.privateRadius, "Please add a location radius."],
-      ["privateCriteria", data.privateCriteria, "Please add invite criteria."]
-    ].forEach(([field, value, message]) => {
-      if (!value) errors[field] = message;
-    });
-
-    const selectedProfiles = document.querySelectorAll(".private-profile-checkbox:checked");
-    if (!selectedProfiles.length) {
-      errors.privateMatches = "Select at least one demo profile to preview the private invite list.";
+    if (data[tagFieldName].length !== 3) {
+      errors[tagErrorField] = "Please add exactly three one-word tags.";
+    } else if (new Set(data[tagFieldName].map((tag) => tag.toLowerCase())).size !== 3) {
+      errors[tagErrorField] = "Tags must be unique and one word each.";
     }
   }
 
@@ -1083,7 +1123,7 @@ function buildCreatePreview(values) {
         <ul class="meta-list">
           <li><span class="meta-label">When</span> ${formattedDate}</li>
           <li><span class="meta-label">Start</span> ${values.time || "Flexible"}</li>
-          <li><span class="meta-label">Where</span> ${values.location || "General location"}</li>
+          <li><span class="meta-label">Where</span> ${values.location || "Specific address or cross streets"}</li>
           <li><span class="meta-label">Capacity</span> ${values.capacity || "Flexible"}</li>
         </ul>
         <p class="outing-description">${values.description || "Describe the experience."}</p>
@@ -1134,6 +1174,7 @@ function publishCreatedOuting() {
     category: values.category,
     date: eventDate,
     location: values.location.trim(),
+    address: values.location.trim(),
     budget: values.cost.trim(),
     outingType: type,
     participationType: type,
@@ -1149,7 +1190,7 @@ function publishCreatedOuting() {
     attendance: "0 interested",
     capacity: Number(values.capacity || 12),
     locationType: "custom",
-    coordinates: getLocationCoords({ location: values.location.trim() }),
+    coordinates: getLocationCoords({ location: values.location.trim(), address: values.location.trim() }),
     createdByUser: true,
     selectedProfiles: type === "PRIVATE_OUTING"
       ? Array.from(document.querySelectorAll(".private-profile-checkbox:checked")).map((checkbox) => checkbox.value)
@@ -1195,6 +1236,7 @@ function setActiveScreen(screenName) {
 
   if (screenName === "plans") {
     renderPlansScreen();
+    syncPlanSelection();
   }
 }
 
@@ -1241,6 +1283,7 @@ document.querySelectorAll(".plan-tab").forEach((button) => {
   button.addEventListener("click", () => {
     state.activePlansTab = button.dataset.planTab;
     persistSavedState();
+    syncPlanSelection();
     renderPlansScreen();
   });
 });
@@ -1249,11 +1292,31 @@ planSectionButtons.forEach((button) => {
   button.addEventListener("click", () => {
     state.activePlansTab = button.dataset.planSection;
     persistSavedState();
+    syncPlanSelection();
     renderPlansScreen();
     closeNavDropdowns();
     setActiveScreen("plans");
   });
 });
+
+document.getElementById("calendar-prev-button").addEventListener("click", () => {
+  state.calendarMonth = new Date(state.calendarMonth.getFullYear(), state.calendarMonth.getMonth() - 1, 1);
+  if (!state.calendarSelectedDate) {
+    state.calendarSelectedDate = new Date().toISOString().slice(0, 10);
+  }
+  renderDiscoverView();
+  persistSavedState();
+});
+
+document.getElementById("calendar-next-button").addEventListener("click", () => {
+  state.calendarMonth = new Date(state.calendarMonth.getFullYear(), state.calendarMonth.getMonth() + 1, 1);
+  if (!state.calendarSelectedDate) {
+    state.calendarSelectedDate = new Date().toISOString().slice(0, 10);
+  }
+  renderDiscoverView();
+  persistSavedState();
+});
+
 document.getElementById("open-create-placeholder").addEventListener("click", handleOpenCreatePlaceholder);
 
 document.querySelectorAll(".create-type-option").forEach((button) => {
@@ -1275,6 +1338,11 @@ document.addEventListener("click", (event) => {
   if (navDropdownTrigger) {
     const dropdown = navDropdownTrigger.closest("[data-nav-dropdown]");
     if (dropdown) {
+      const isAlreadyOpen = !dropdown.querySelector(".nav-dropdown-menu")?.classList.contains("hidden");
+      if (isAlreadyOpen) {
+        closeNavDropdowns();
+        return;
+      }
       toggleNavDropdown(dropdown);
       setActiveScreen("plans");
     }

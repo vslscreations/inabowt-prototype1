@@ -293,8 +293,8 @@
 
               <div class="field-grid two-col">
                 <label class="field-group">
-                  <span>General location</span>
-                  <input id="create-location-field" name="location" type="text" maxlength="100" placeholder="Downtown Arts District" />
+                  <span>Specific address or cross streets</span>
+                  <input id="create-location-field" name="location" type="text" maxlength="100" placeholder="123 Main St or 7th St & Fremont Ave" />
                   <small class="error-message" data-error-for="location"></small>
                 </label>
 
@@ -343,71 +343,11 @@
               </div>
 
               <div class="create-type-panel" data-type-panel="PRIVATE_OUTING">
-                <div class="field-grid two-col">
-                  <label class="field-group">
-                    <span>Preferred activities</span>
-                    <input id="create-private-activities" name="privateActivities" type="text" maxlength="80" placeholder="Board games, low-key social, wellness" />
-                    <small class="error-message" data-error-for="privateActivities"></small>
-                  </label>
-
-                  <label class="field-group">
-                    <span>Availability</span>
-                    <input id="create-private-availability" name="privateAvailability" type="text" maxlength="80" placeholder="Evenings, weekends, flexible" />
-                    <small class="error-message" data-error-for="privateAvailability"></small>
-                  </label>
-                </div>
-
-                <div class="field-grid two-col">
-                  <label class="field-group">
-                    <span>Approximate location radius</span>
-                    <input id="create-private-radius" name="privateRadius" type="text" maxlength="50" placeholder="Within 10 miles" />
-                    <small class="error-message" data-error-for="privateRadius"></small>
-                  </label>
-
-                  <label class="field-group">
-                    <span>Invite-only criteria</span>
-                    <input id="create-private-criteria" name="privateCriteria" type="text" maxlength="80" placeholder="Casual social energy, similar interests" />
-                    <small class="error-message" data-error-for="privateCriteria"></small>
-                  </label>
-                </div>
-
-                <div class="private-matching-box">
-                  <div class="private-matching-header">
-                    <span>Suggested matches</span>
-                    <small>Prototype matching preview</small>
-                  </div>
-                  <div class="private-profile-list">
-                    <label class="private-profile-item">
-                      <input type="checkbox" class="private-profile-checkbox" value="maya-chen" />
-                      <span>
-                        <strong>Maya C.</strong>
-                        <small>Games · Evenings · Downtown</small>
-                      </span>
-                    </label>
-                    <label class="private-profile-item">
-                      <input type="checkbox" class="private-profile-checkbox" value="leo-ramos" />
-                      <span>
-                        <strong>Leo R.</strong>
-                        <small>Outdoors · Weekends · Westside</small>
-                      </span>
-                    </label>
-                    <label class="private-profile-item">
-                      <input type="checkbox" class="private-profile-checkbox" value="sasha-park" />
-                      <span>
-                        <strong>Sasha P.</strong>
-                        <small>Food &amp; Drinks · Flexible · Midtown</small>
-                      </span>
-                    </label>
-                    <label class="private-profile-item">
-                      <input type="checkbox" class="private-profile-checkbox" value="omar-jones" />
-                      <span>
-                        <strong>Omar J.</strong>
-                        <small>Arts &amp; Culture · Weeknights · Summerlin</small>
-                      </span>
-                    </label>
-                  </div>
-                  <small class="error-message" data-error-for="privateMatches"></small>
-                </div>
+                <label class="field-group">
+                  <span>3 one-word tags</span>
+                  <input id="create-private-tags" name="privateTags" type="text" maxlength="80" placeholder="Music Social Nightlife" />
+                  <small class="error-message" data-error-for="privateTags"></small>
+                </label>
               </div>
             </div>
 
@@ -430,6 +370,7 @@
 
     <div id="creation-toast" class="creation-toast hidden" role="status" aria-live="polite"></div>
 
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <script src="js/data.js"></script>
     <script src="js/app.js"></script>
   </body>
