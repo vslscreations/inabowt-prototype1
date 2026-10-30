@@ -8,8 +8,9 @@
       content="Inabowt helps people discover local experiences and plan outings in Las Vegas."
     />
     <title>Inabowt | Get Out and About. Explore More.</title>
-    <link rel="icon" type="image/png" href="assets/images/favicon.png" />
+    <link rel="icon" type="image/png" href="assets/images/apple-touch-icon.png" />
     <link rel="apple-touch-icon" href="assets/images/apple-touch-icon.png" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
     <link rel="stylesheet" href="css/styles.css" />
   </head>
   <body>
@@ -27,9 +28,25 @@
           <button class="nav-button is-active" data-screen="discover" type="button">
             Discover
           </button>
-          <button class="nav-button" data-screen="plans" type="button">
-            My Plans
-          </button>
+
+          <div class="nav-dropdown" data-nav-dropdown>
+            <button
+              class="nav-button nav-dropdown-trigger"
+              data-screen="plans"
+              type="button"
+              aria-expanded="false"
+              aria-haspopup="true"
+            >
+              My Plans
+            </button>
+            <div class="nav-dropdown-menu hidden" role="menu" aria-label="My plans sections">
+              <button type="button" class="nav-dropdown-item is-selected" data-plan-section="UPCOMING" role="menuitem">Upcoming</button>
+              <button type="button" class="nav-dropdown-item" data-plan-section="PENDING" role="menuitem">Pending</button>
+              <button type="button" class="nav-dropdown-item" data-plan-section="INVITATIONS" role="menuitem">Invitations</button>
+              <button type="button" class="nav-dropdown-item" data-plan-section="PAST" role="menuitem">Past</button>
+            </div>
+          </div>
+
           <button class="nav-button" data-screen="profile" type="button">
             Profile
           </button>
@@ -81,6 +98,12 @@
             <span class="feed-meta" id="feed-count">0 outings</span>
           </section>
 
+          <div class="discover-view-toggle" role="tablist" aria-label="Discover view selector">
+            <button type="button" class="discover-view-option is-active" data-discover-view="regular" role="tab" aria-selected="true">Regular</button>
+            <button type="button" class="discover-view-option" data-discover-view="calendar" role="tab" aria-selected="false">Calendar</button>
+            <button type="button" class="discover-view-option" data-discover-view="map" role="tab" aria-selected="false">Map</button>
+          </div>
+
           <div class="outing-type-toggle" role="tablist" aria-label="Outing type toggle">
             <button type="button" class="outing-type-option is-active" data-outing-type="OPEN_OUTING" role="tab" aria-selected="true">
               <span class="toggle-label">Open Outings</span>
@@ -92,7 +115,35 @@
             </button>
           </div>
 
-          <section id="outing-feed" class="outing-feed" aria-live="polite"></section>
+          <section id="discover-regular-view" class="discover-view-panel is-visible">
+            <section id="outing-feed" class="outing-feed" aria-live="polite"></section>
+          </section>
+
+          <section id="discover-calendar-view" class="discover-view-panel hidden" aria-live="polite">
+            <div class="calendar-shell">
+              <div class="calendar-toolbar">
+                <button type="button" class="secondary-button compact" id="calendar-prev-button" aria-label="Previous month">Previous</button>
+                <h3 id="calendar-month-label">Month</h3>
+                <button type="button" class="secondary-button compact" id="calendar-next-button" aria-label="Next month">Next</button>
+              </div>
+              <div class="calendar-weekdays">
+                <span>Sun</span>
+                <span>Mon</span>
+                <span>Tue</span>
+                <span>Wed</span>
+                <span>Thu</span>
+                <span>Fri</span>
+                <span>Sat</span>
+              </div>
+              <div id="calendar-grid" class="calendar-grid"></div>
+            </div>
+          </section>
+
+          <section id="discover-map-view" class="discover-view-panel hidden">
+            <div id="discover-map" aria-label="Map of Las Vegas outings"></div>
+          </section>
+
+          <section id="news-feed" class="news-feed" aria-label="Community news feed"></section>
         </section>
 
         <section id="plans-page" class="screen" aria-label="My Plans screen">
@@ -137,9 +188,19 @@
         <button class="mobile-nav-button is-active" data-screen="discover" type="button">
           <span>Discover</span>
         </button>
-        <button class="mobile-nav-button" data-screen="plans" type="button">
-          <span>My Plans</span>
-        </button>
+
+        <div class="mobile-nav-dropdown" data-nav-dropdown>
+          <button class="mobile-nav-button nav-dropdown-trigger" data-screen="plans" type="button" aria-expanded="false" aria-haspopup="true">
+            <span>My Plans</span>
+          </button>
+          <div class="nav-dropdown-menu hidden" role="menu" aria-label="My plans sections">
+            <button type="button" class="nav-dropdown-item is-selected" data-plan-section="UPCOMING" role="menuitem">Upcoming</button>
+            <button type="button" class="nav-dropdown-item" data-plan-section="PENDING" role="menuitem">Pending</button>
+            <button type="button" class="nav-dropdown-item" data-plan-section="INVITATIONS" role="menuitem">Invitations</button>
+            <button type="button" class="nav-dropdown-item" data-plan-section="PAST" role="menuitem">Past</button>
+          </div>
+        </div>
+
         <button class="mobile-nav-button" data-screen="profile" type="button">
           <span>Profile</span>
         </button>
@@ -267,10 +328,18 @@
               </div>
 
               <div class="create-type-panel" data-type-panel="PUBLIC_OUTING">
-                <label class="field-group">
-                  <span>Selection notes</span>
-                  <textarea id="create-public-notes" name="publicNotes" rows="3" maxlength="180" placeholder="Optional: who should express interest or what vibe should stand out"></textarea>
-                </label>
+                <div class="field-grid">
+                  <label class="field-group">
+                    <span>Selection notes</span>
+                    <textarea id="create-public-notes" name="publicNotes" rows="3" maxlength="180" placeholder="Optional: who should express interest or what vibe should stand out"></textarea>
+                  </label>
+
+                  <label class="field-group">
+                    <span>Public tags</span>
+                    <input id="create-public-tags" name="publicTags" type="text" maxlength="80" placeholder="Music, Social, Nightlife" />
+                    <small class="error-message" data-error-for="publicTags"></small>
+                  </label>
+                </div>
               </div>
 
               <div class="create-type-panel" data-type-panel="PRIVATE_OUTING">

@@ -15,6 +15,9 @@ const createImageFileInput = document.getElementById("create-image-file");
 const createImageField = document.getElementById("create-image-field");
 const categorySelect = document.getElementById("category-select");
 const navButtons = document.querySelectorAll("[data-screen]");
+const discoverViewButtons = document.querySelectorAll("[data-discover-view]");
+const navDropdowns = document.querySelectorAll("[data-nav-dropdown]");
+const planSectionButtons = document.querySelectorAll("[data-plan-section]");
 const screens = {
   discover: document.getElementById("discover-page"),
   plans: document.getElementById("plans-page"),
@@ -30,6 +33,31 @@ const categories = [
   "Arts & Culture",
   "Unique Experiences"
 ];
+
+const discoverViewMeta = {
+  regular: "Regular",
+  calendar: "Calendar",
+  map: "Map"
+};
+
+const locationCoordinates = {
+  "The Linq Promenade": { lat: 36.1171, lng: -115.1712, type: "cross streets" },
+  "Downtown Las Vegas": { lat: 36.1699, lng: -115.1398, type: "area" },
+  "Downtown Arts District": { lat: 36.1708, lng: -115.1458, type: "neighborhood" },
+  "Red Rock Scenic Loop": { lat: 36.1314, lng: -115.4173, type: "area" },
+  "Player 1 Video Game Bar, Downtown": { lat: 36.1691, lng: -115.1401, type: "exact address" },
+  "South Strip": { lat: 36.1039, lng: -115.1775, type: "area" },
+  "Arts District": { lat: 36.1678, lng: -115.1475, type: "neighborhood" },
+  "Summerlin": { lat: 36.1674, lng: -115.3347, type: "area" },
+  "Lake Mead Parkway": { lat: 36.0396, lng: -115.1185, type: "area" },
+  "Fremont East": { lat: 36.1696, lng: -115.142, type: "neighborhood" },
+  "Fremont Street": { lat: 36.1699, lng: -115.1418, type: "cross streets" },
+  "The District at Green Valley": { lat: 36.0569, lng: -115.0912, type: "area" },
+  "Pioneer & 7th Streets": { lat: 36.1711, lng: -115.1404, type: "cross streets" },
+  "Paradise Rd & Flamingo Rd": { lat: 36.1155, lng: -115.1724, type: "cross streets" },
+  "Green Valley Pkwy & Arroyo Grande Blvd": { lat: 36.0553, lng: -115.0932, type: "cross streets" },
+  "Fremont St & 7th St": { lat: 36.1715, lng: -115.1427, type: "cross streets" }
+};
 
 const outingTypeMeta = {
   OPEN_OUTING: {
@@ -52,18 +80,28 @@ function loadSavedState() {
   try {
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
     return {
+      activeCategory: saved.activeCategory || "All",
+      activeType: saved.activeType || "OPEN_OUTING",
+      searchTerm: saved.searchTerm || "",
       participationStatus: saved.participationStatus || {},
       invitationStatus: saved.invitationStatus || {},
       activePlansTab: saved.activePlansTab || "UPCOMING",
+      discoverView: saved.discoverView || "regular",
+      calendarMonth: saved.calendarMonth ? new Date(saved.calendarMonth) : new Date(new Date().getFullYear(), new Date().getMonth(), 1),
       createdOutings: Array.isArray(saved.createdOutings) ? saved.createdOutings : [],
       createdByUser: saved.createdByUser || {},
       persistedOutings: Array.isArray(saved.persistedOutings) ? saved.persistedOutings : []
     };
   } catch (error) {
     return {
+      activeCategory: "All",
+      activeType: "OPEN_OUTING",
+      searchTerm: "",
       participationStatus: {},
       invitationStatus: {},
       activePlansTab: "UPCOMING",
+      discoverView: "regular",
+      calendarMonth: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
       createdOutings: [],
       createdByUser: {},
       persistedOutings: []
@@ -78,6 +116,8 @@ const state = {
   participationStatus: {},
   invitationStatus: {},
   activePlansTab: "UPCOMING",
+  discoverView: "regular",
+  calendarMonth: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
   createdOutings: [],
   createdByUser: {},
   persistedOutings: [],
@@ -96,14 +136,79 @@ function persistSavedState() {
   localStorage.setItem(
     STORAGE_KEY,
     JSON.stringify({
+      activeCategory: state.activeCategory,
+      activeType: state.activeType,
+      searchTerm: state.searchTerm,
       participationStatus: state.participationStatus,
       invitationStatus: state.invitationStatus,
       activePlansTab: state.activePlansTab,
+      discoverView: state.discoverView,
+      calendarMonth: state.calendarMonth.toISOString(),
       createdOutings: state.createdOutings,
       createdByUser: state.createdByUser,
       persistedOutings: outings.filter((outing) => state.createdOutings.includes(outing.id))
     })
   );
+}
+
+function parseDateTime(value) {
+  if (!value) return new Date(0);
+  const isoText = String(value).trim();
+  const usableValue = isoText.includes("T") ? isoText : `${isoText}T12:00`;
+  const parsed = new Date(usableValue);
+  return Number.isNaN(parsed.getTime()) ? new Date(0) : parsed;
+}
+
+function startOfToday() {
+  const now = new Date();
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+}
+
+function formatTime(dateValue) {
+  const date = parseDateTime(dateValue);
+  return new Intl.DateTimeFormat("en-US", {
+    hour: "numeric",
+    minute: "2-digit"
+  }).format(date);
+}
+
+function getEventDateValue(outing) {
+  return parseDateTime(outing?.date).getTime();
+}
+
+function getSortedOutings(list) {
+  return [...list].sort((a, b) => getEventDateValue(a) - getEventDateValue(b));
+}
+
+function getLocationCoords(outing) {
+  const locationString = outing?.location || "";
+  const direct = outing?.coordinates || locationCoordinates[locationString];
+  if (direct && typeof direct.lat === "number" && typeof direct.lng === "number") {
+    return { lat: direct.lat, lng: direct.lng, type: direct.type || "area" };
+  }
+
+  const fallback = locationCoordinates[locationString] || { lat: 36.1699, lng: -115.1398, type: "area" };
+  return { lat: fallback.lat, lng: fallback.lng, type: fallback.type || "area" };
+}
+
+function normalizePublicTags(rawTags) {
+  const rawText = Array.isArray(rawTags)
+    ? rawTags.join(" ")
+    : String(rawTags || "");
+
+  const candidates = rawText
+    .split(/[\n,;]+|\s+/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+  const normalized = candidates
+    .map((tag) => String(tag || "").trim().replace(/\s+/g, ""))
+    .filter(Boolean)
+    .filter((tag) => !/\s/.test(tag))
+    .filter((tag) => /^[A-Za-z0-9-]+$/.test(tag))
+    .map((tag) => tag.charAt(0).toUpperCase() + tag.slice(1));
+
+  return [...new Set(normalized.map((tag) => tag.toLowerCase()).map((tag) => tag.charAt(0).toUpperCase() + tag.slice(1)))];
 }
 
 function normalizeImageValue(rawValue) {
@@ -183,19 +288,24 @@ function setMediaBackground(element, imageValue, fallbackValue) {
 }
 
 function getVisibleOutings() {
-  return outings.filter((outing) => {
-    const outingType = normalizeOutingType(outing);
-    if (outingType === "PRIVATE_OUTING") {
-      return false;
-    }
-    const matchesType = outingType === state.activeType;
-    const matchesCategory =
-      state.activeCategory === "All" || outing.category === state.activeCategory;
-    const haystack = `${outing.title} ${outing.location} ${outing.description} ${outing.category} ${outing.creatorName}`.toLowerCase();
-    const matchesSearch = haystack.includes(state.searchTerm.toLowerCase());
+  const todayStart = startOfToday().getTime();
+  return getSortedOutings(
+    outings.filter((outing) => {
+      const outingType = normalizeOutingType(outing);
+      if (outingType === "PRIVATE_OUTING") {
+        return false;
+      }
 
-    return matchesType && matchesCategory && matchesSearch;
-  });
+      const matchesType = outingType === state.activeType;
+      const matchesCategory =
+        state.activeCategory === "All" || outing.category === state.activeCategory;
+      const haystack = `${outing.title} ${outing.location} ${outing.description} ${outing.category} ${outing.creatorName}`.toLowerCase();
+      const matchesSearch = haystack.includes(state.searchTerm.toLowerCase());
+      const isUpcoming = getEventDateValue(outing) >= todayStart;
+
+      return matchesType && matchesCategory && matchesSearch && isUpcoming;
+    })
+  );
 }
 
 function getTypeBadgeClasses(type) {
@@ -204,11 +314,248 @@ function getTypeBadgeClasses(type) {
   return "type-badge public";
 }
 
+function getPublicTags(outing) {
+  const tags = normalizePublicTags(outing?.tags || []);
+  return tags.slice(0, 3).length ? tags.slice(0, 3) : ["Social", "Explore", "Local"];
+}
+
 function renderTypeToggle() {
   document.querySelectorAll(".outing-type-option").forEach((button) => {
     const isActive = button.dataset.outingType === state.activeType;
     button.classList.toggle("is-active", isActive);
     button.setAttribute("aria-selected", String(isActive));
+  });
+}
+
+function renderDiscoverView() {
+  const panels = document.querySelectorAll(".discover-view-panel");
+  panels.forEach((panel) => {
+    const isVisible = panel.id === `discover-${state.discoverView === "regular" ? "regular" : state.discoverView === "calendar" ? "calendar" : "map"}-view`;
+    panel.classList.toggle("hidden", !isVisible);
+    panel.classList.toggle("is-visible", isVisible);
+  });
+
+  discoverViewButtons.forEach((button) => {
+    const isActive = button.dataset.discoverView === state.discoverView;
+    button.classList.toggle("is-active", isActive);
+    button.setAttribute("aria-selected", String(isActive));
+  });
+
+  if (state.discoverView === "calendar") {
+    renderCalendarView();
+  }
+
+  if (state.discoverView === "map") {
+    renderMapView();
+  }
+}
+
+function syncPlanSelection() {
+  document.querySelectorAll(".plan-tab").forEach((button) => {
+    const isActive = button.dataset.planTab === state.activePlansTab;
+    button.classList.toggle("is-active", isActive);
+    button.setAttribute("aria-selected", String(isActive));
+  });
+
+  document.querySelectorAll(".nav-dropdown-item").forEach((button) => {
+    const isSelected = button.dataset.planSection === state.activePlansTab;
+    button.classList.toggle("is-selected", isSelected);
+    button.setAttribute("aria-current", isSelected ? "page" : "false");
+  });
+}
+
+function closeNavDropdowns() {
+  navDropdowns.forEach((dropdown) => {
+    const menu = dropdown.querySelector(".nav-dropdown-menu");
+    const trigger = dropdown.querySelector(".nav-dropdown-trigger");
+    if (menu) menu.classList.add("hidden");
+    if (trigger) trigger.setAttribute("aria-expanded", "false");
+  });
+}
+
+function toggleNavDropdown(dropdown) {
+  const menu = dropdown.querySelector(".nav-dropdown-menu");
+  const trigger = dropdown.querySelector(".nav-dropdown-trigger");
+  if (!menu || !trigger) return;
+
+  const shouldOpen = menu.classList.contains("hidden");
+  closeNavDropdowns();
+
+  if (shouldOpen) {
+    menu.classList.remove("hidden");
+    trigger.setAttribute("aria-expanded", "true");
+  }
+}
+
+function renderDiscoverContent() {
+  renderDiscoverView();
+
+  if (state.discoverView === "regular") {
+    renderOutings();
+    return;
+  }
+
+  if (state.discoverView === "calendar") {
+    renderCalendarView();
+    return;
+  }
+
+  renderMapView();
+}
+
+function renderNewsFeed() {
+  const feed = document.getElementById("news-feed");
+  if (!feed) return;
+
+  const entries = window.demoNewsFeed || [];
+  if (!entries.length) {
+    feed.innerHTML = `
+      <div class="placeholder-panel no-results">
+        <p class="eyebrow">News Feed</p>
+        <h2>Community updates are on the way.</h2>
+        <p>Check back soon for community storyboards and demo activity updates.</p>
+      </div>
+    `;
+    return;
+  }
+
+  feed.innerHTML = `
+    <div class="news-feed-header">
+      <p class="eyebrow">News Feed</p>
+      <h2>What the community is up to</h2>
+    </div>
+    <div class="news-feed-grid">
+      ${entries
+        .map(
+          (entry) => `
+            <article class="news-card ${entry.kind === "story" ? "story" : "activity"}">
+              <div class="news-card-top">
+                <span class="news-card-tag">${entry.label}</span>
+              </div>
+              <h3>${entry.title}</h3>
+              <p>${entry.description}</p>
+            </article>
+          `
+        )
+        .join("")}
+    </div>
+  `;
+}
+
+function renderCalendarView() {
+  const calendarGrid = document.getElementById("calendar-grid");
+  const monthLabel = document.getElementById("calendar-month-label");
+  if (!calendarGrid || !monthLabel) return;
+
+  const monthDate = new Date(state.calendarMonth.getFullYear(), state.calendarMonth.getMonth(), 1);
+  const monthName = new Intl.DateTimeFormat("en-US", { month: "long", year: "numeric" }).format(monthDate);
+  monthLabel.textContent = monthName;
+
+  const visibleEvents = getVisibleOutings();
+  const firstDay = new Date(monthDate.getFullYear(), monthDate.getMonth(), 1);
+  const startOffset = firstDay.getDay();
+  const calendarStart = new Date(firstDay);
+  calendarStart.setDate(firstDay.getDate() - startOffset);
+
+  const cells = [];
+  const selectedDate = state.calendarSelectedDate || new Date().toISOString().slice(0, 10);
+
+  for (let index = 0; index < 42; index += 1) {
+    const date = new Date(calendarStart);
+    date.setDate(calendarStart.getDate() + index);
+    const isoDate = date.toISOString().slice(0, 10);
+    const eventsForDate = visibleEvents.filter((outing) => {
+      const outingDate = new Date(parseDateTime(outing.date));
+      return outingDate.toISOString().slice(0, 10) === isoDate;
+    });
+    const dayClass = [
+      "calendar-day",
+      date.getMonth() !== monthDate.getMonth() ? "is-muted" : "",
+      eventsForDate.length ? "has-events" : "",
+      isoDate === selectedDate ? "is-selected" : ""
+    ].filter(Boolean).join(" ");
+
+    cells.push(`
+      <button type="button" class="${dayClass}" data-calendar-date="${isoDate}" ${eventsForDate.length ? "aria-label=\"${eventsForDate.length} events on ${isoDate}\"" : ""}>
+        <span class="calendar-day-number">${date.getDate()}</span>
+        ${eventsForDate.length ? `<span class="calendar-day-badge">${Math.min(eventsForDate.length, 3)}</span>` : ""}
+        ${eventsForDate.slice(0, 2).map((event) => `<span class="calendar-day-label">${event.title}</span>`).join("")}
+      </button>
+    `);
+  }
+
+  calendarGrid.innerHTML = cells.join("");
+
+  calendarGrid.querySelectorAll(".calendar-day").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.calendarSelectedDate = button.dataset.calendarDate;
+      renderCalendarView();
+      const dayEvents = visibleEvents.filter((outing) => new Date(parseDateTime(outing.date)).toISOString().slice(0, 10) === state.calendarSelectedDate);
+      if (!dayEvents.length) {
+        return;
+      }
+      const event = dayEvents[0];
+      openEventDetails(event.id);
+    });
+  });
+}
+
+function renderMapView() {
+  const mapContainer = document.getElementById("discover-map");
+  if (!mapContainer) return;
+
+  if (!window.L) {
+    mapContainer.innerHTML = '<div class="placeholder-panel no-results"><p class="eyebrow">Map unavailable</p><h2>Map tiles could not load.</h2><p>The app will continue to work in Regular and Calendar views.</p></div>';
+    return;
+  }
+
+  const visibleEvents = getVisibleOutings();
+  if (!visibleEvents.length) {
+    mapContainer.innerHTML = '<div class="placeholder-panel no-results"><p class="eyebrow">No map results</p><h2>No current outings match this filter.</h2><p>Try a different category or reset your search.</p></div>';
+    return;
+  }
+
+  if (!mapContainer._inabowtMap) {
+    const map = window.L.map("discover-map", { zoomControl: true, scrollWheelZoom: true }).setView([36.1699, -115.1398], 10);
+    window.L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: "&copy; OpenStreetMap contributors",
+      maxZoom: 18
+    }).addTo(map);
+    mapContainer._inabowtMap = map;
+  }
+
+  const map = mapContainer._inabowtMap;
+  map.eachLayer((layer) => {
+    if (layer instanceof window.L.Marker) {
+      map.removeLayer(layer);
+    }
+  });
+
+  const validCoords = visibleEvents
+    .map((outing) => {
+      const point = getLocationCoords(outing);
+      return { outing, point };
+    })
+    .filter(({ point }) => Number.isFinite(point.lat) && Number.isFinite(point.lng));
+
+  if (!validCoords.length) {
+    mapContainer.innerHTML = '<div class="placeholder-panel no-results"><p class="eyebrow">Map unavailable</p><h2>These outings do not have a usable map location.</h2><p>Regular and Calendar views still show them normally.</p></div>';
+    return;
+  }
+
+  const bounds = [];
+  validCoords.forEach(({ outing, point }) => {
+    const marker = window.L.marker([point.lat, point.lng]).addTo(map);
+    marker.bindPopup(`<strong>${outing.title}</strong><br>${outing.location}<br><button type="button" class="map-popup-button" data-map-id="${outing.id}">View details</button>`);
+    bounds.push([point.lat, point.lng]);
+  });
+
+  map.fitBounds(bounds, { padding: [36, 36], maxZoom: 12 });
+
+  mapContainer.querySelectorAll(".map-popup-button").forEach((button) => {
+    button.addEventListener("click", () => {
+      openEventDetails(button.dataset.mapId);
+    });
   });
 }
 
@@ -232,6 +579,10 @@ function renderOutings() {
   outingFeed.innerHTML = visibleOutings
     .map((outing) => {
       const outingType = normalizeOutingType(outing);
+      const tagMarkup = getPublicTags(outing)
+        .slice(0, 3)
+        .map((tag) => `<span class="detail-tag">${tag}</span>`)
+        .join("");
       const badgeRow = `
         <div class="badge-row">
           <span class="category-badge">${outing.category}</span>
@@ -240,9 +591,15 @@ function renderOutings() {
         </div>
       `;
 
-      const creatorRow = outingType === "PUBLIC_OUTING"
-        ? `<li><span class="meta-label">Creator</span> ${outing.creatorName}</li>`
-        : "";
+      const metaRows = [
+        `<li><span class="meta-label">When</span> ${formatDate(outing.date)}</li>`,
+        `<li><span class="meta-label">Start</span> ${formatTime(outing.date)}</li>`,
+        `<li><span class="meta-label">Where</span> ${outing.location}</li>`
+      ];
+
+      if (outingType === "PUBLIC_OUTING") {
+        metaRows.push(`<li><span class="meta-label">Capacity</span> ${outing.capacity || "Flexible"}</li>`);
+      }
 
       return `
         <article class="outing-card" data-id="${outing.id}" tabindex="0" aria-label="Open details for ${outing.title}">
@@ -251,11 +608,10 @@ function renderOutings() {
             ${badgeRow}
             <h3>${outing.title}</h3>
             <ul class="meta-list">
-              <li><span class="meta-label">When</span> ${formatDate(outing.date)}</li>
-              <li><span class="meta-label">Where</span> ${outing.location}</li>
-              ${creatorRow}
+              ${metaRows.join("")}
             </ul>
             <p class="outing-description">${outing.description}</p>
+            <div class="detail-tags">${tagMarkup}</div>
             <div class="card-footer">
               <span class="status-pill">${outingTypeMeta[outingType].label}</span>
               <button class="card-link" type="button">View details</button>
@@ -286,13 +642,7 @@ function renderOutings() {
 
 function renderPlansScreen() {
   const plansContent = document.getElementById("plans-content");
-  const planTabs = document.querySelectorAll(".plan-tab");
-
-  planTabs.forEach((button) => {
-    const isActive = button.dataset.planTab === state.activePlansTab;
-    button.classList.toggle("is-active", isActive);
-    button.setAttribute("aria-selected", String(isActive));
-  });
+  syncPlanSelection();
 
   const activeCreatedItems = outings.filter((outing) => state.createdOutings.includes(outing.id));
   const upcomingItems = [
@@ -304,16 +654,18 @@ function renderPlansScreen() {
 
   let items = [];
   if (state.activePlansTab === "UPCOMING") {
-    items = upcomingItems;
+    items = getSortedOutings(upcomingItems);
   } else if (state.activePlansTab === "PENDING") {
-    items = pendingItems;
+    items = getSortedOutings(pendingItems);
   } else if (state.activePlansTab === "INVITATIONS") {
-    items = demoInvitations.filter((invite) => {
-      const inviteStatus = state.invitationStatus[invite.eventId];
-      return inviteStatus !== "ACCEPTED" && inviteStatus !== "DECLINED";
-    });
+    items = getSortedOutings(
+      demoInvitations.filter((invite) => {
+        const inviteStatus = state.invitationStatus[invite.eventId];
+        return inviteStatus !== "ACCEPTED" && inviteStatus !== "DECLINED";
+      })
+    );
   } else if (state.activePlansTab === "PAST") {
-    items = pastItems;
+    items = getSortedOutings(pastItems);
   }
 
   if (!items.length) {
@@ -442,8 +794,35 @@ function openEventDetails(id) {
       ? isJoined ? "Joined" : "Join outing"
       : isInterested ? "Interest recorded" : "Express interest";
   const mediaFallback = "linear-gradient(135deg, rgba(8, 102, 255, 0.72), rgba(0, 217, 255, 0.24)), radial-gradient(circle at 20% 20%, rgba(255,255,255,0.3), transparent 18%), linear-gradient(180deg, rgba(4, 10, 18, 0.3), rgba(4, 10, 18, 0.85))";
+  const publicTags = getPublicTags(event);
 
-  detailsContent.innerHTML = `
+  const publicDetailMarkup = `
+    <div class="detail-content">
+      <div class="detail-media" data-image="${event.image}" data-fallback="${mediaFallback}" style="background-image: ${event.image};"></div>
+      <div class="detail-header">
+        <span class="category-badge">${event.category}</span>
+        <span class="${getTypeBadgeClasses(outingType)}">${outingTypeMeta[outingType].label}</span>
+      </div>
+      <h2 id="details-title" class="detail-title">${event.title}</h2>
+      <p class="detail-description">${event.description}</p>
+      <div class="detail-grid">
+        <div class="detail-item"><span>Date</span><strong>${formatDate(event.date)}</strong></div>
+        <div class="detail-item"><span>Start time</span><strong>${formatTime(event.date)}</strong></div>
+        <div class="detail-item"><span>Location</span><strong>${event.location}</strong></div>
+        <div class="detail-item"><span>Capacity</span><strong>${event.capacity || "Flexible"}</strong></div>
+      </div>
+      <div class="detail-tags">
+        ${publicTags.map((tag) => `<span class="detail-tag">${tag}</span>`).join("")}
+      </div>
+      <div class="detail-actions">
+        <button class="primary-button" type="button" id="prototype-interaction-button" data-event-id="${event.id}" ${createdByUser || isJoined || isInterested ? "disabled" : ""}>${actionText}</button>
+        <button class="secondary-button" type="button" data-close-modal="details-modal">Close</button>
+      </div>
+      <p class="detail-note">Prototype interaction only: expressing interest does not guarantee selection or attendance.</p>
+    </div>
+  `;
+
+  const standardDetailMarkup = `
     <div class="detail-content">
       <div class="detail-media" data-image="${event.image}" data-fallback="${mediaFallback}" style="background-image: ${event.image};"></div>
       <div class="detail-header">
@@ -493,6 +872,8 @@ function openEventDetails(id) {
       </p>
     </div>
   `;
+
+  detailsContent.innerHTML = outingType === "PUBLIC_OUTING" ? publicDetailMarkup : standardDetailMarkup;
 
   const detailMedia = detailsContent.querySelector(".detail-media");
   if (detailMedia) {
@@ -612,6 +993,7 @@ function validateCreateForm() {
     image: document.getElementById("create-image-field").value.trim(),
     openRequirements: document.getElementById("create-open-requirements").value.trim(),
     publicNotes: document.getElementById("create-public-notes").value.trim(),
+    publicTags: normalizePublicTags(document.getElementById("create-public-tags")?.value || ""),
     privateActivities: document.getElementById("create-private-activities").value.trim(),
     privateAvailability: document.getElementById("create-private-availability").value.trim(),
     privateRadius: document.getElementById("create-private-radius").value.trim(),
@@ -647,6 +1029,14 @@ function validateCreateForm() {
     errors.image = "Use a valid image path or upload a file.";
   }
 
+  if (data.outingType === "PUBLIC_OUTING") {
+    if (data.publicTags.length !== 3) {
+      errors.publicTags = "Public outings need exactly three one-word tags.";
+    } else if (new Set(data.publicTags.map((tag) => tag.toLowerCase())).size !== 3) {
+      errors.publicTags = "Public outing tags must be unique and one word each.";
+    }
+  }
+
   if (data.outingType === "PRIVATE_OUTING") {
     [
       ["privateActivities", data.privateActivities, "Please add preferred activities."],
@@ -678,7 +1068,7 @@ function buildCreatePreview(values) {
 
   const imageValue = normalizeImageValue(values.image);
   const typeLabel = outingTypeMeta[type]?.label || "Open Outing";
-  const tags = [values.category, values.location, values.outingType === "PRIVATE_OUTING" ? "Invite-only" : "Social"];
+  const tags = values.outingType === "PUBLIC_OUTING" ? values.publicTags : [values.category, values.location, values.outingType === "PRIVATE_OUTING" ? "Invite-only" : "Social"];
 
   return `
     <p class="preview-heading">Preview</p>
@@ -692,10 +1082,14 @@ function buildCreatePreview(values) {
         <h3>${values.title || "New outing"}</h3>
         <ul class="meta-list">
           <li><span class="meta-label">When</span> ${formattedDate}</li>
+          <li><span class="meta-label">Start</span> ${values.time || "Flexible"}</li>
           <li><span class="meta-label">Where</span> ${values.location || "General location"}</li>
-          <li><span class="meta-label">Budget</span> ${values.cost || "$0–$20"}</li>
+          <li><span class="meta-label">Capacity</span> ${values.capacity || "Flexible"}</li>
         </ul>
         <p class="outing-description">${values.description || "Describe the experience."}</p>
+        <div class="detail-tags">
+          ${tags.map((tag) => `<span class="detail-tag">${tag}</span>`).join("")}
+        </div>
         <div class="card-footer">
           <span class="status-pill">${typeLabel}</span>
           <button class="card-link" type="button">Preview only</button>
@@ -745,7 +1139,7 @@ function publishCreatedOuting() {
     participationType: type,
     description: values.description.trim(),
     image: normalizeImageValue(values.image),
-    tags: [
+    tags: type === "PUBLIC_OUTING" ? normalizePublicTags(values.publicTags) : [
       values.category,
       type === "PRIVATE_OUTING" ? "Invite-only" : "Social",
       values.location.trim().split(" ")[0] || "Local"
@@ -754,6 +1148,8 @@ function publishCreatedOuting() {
     creatorName: "You",
     attendance: "0 interested",
     capacity: Number(values.capacity || 12),
+    locationType: "custom",
+    coordinates: getLocationCoords({ location: values.location.trim() }),
     createdByUser: true,
     selectedProfiles: type === "PRIVATE_OUTING"
       ? Array.from(document.querySelectorAll(".private-profile-checkbox:checked")).map((checkbox) => checkbox.value)
@@ -792,6 +1188,11 @@ function setActiveScreen(screenName) {
     button.classList.toggle("is-active", isActive);
   });
 
+  document.querySelectorAll(".mobile-nav-button").forEach((button) => {
+    const isActive = button.dataset.screen === screenName;
+    button.classList.toggle("is-active", isActive);
+  });
+
   if (screenName === "plans") {
     renderPlansScreen();
   }
@@ -809,19 +1210,30 @@ if (createImageFileInput) {
 
 searchInput.addEventListener("input", (event) => {
   state.searchTerm = event.target.value.trim();
-  renderOutings();
+  persistSavedState();
+  renderDiscoverContent();
 });
 
 categorySelect.addEventListener("change", (event) => {
   state.activeCategory = event.target.value;
-  renderOutings();
+  persistSavedState();
+  renderDiscoverContent();
 });
 
 document.querySelectorAll(".outing-type-option").forEach((button) => {
   button.addEventListener("click", () => {
     state.activeType = button.dataset.outingType;
+    persistSavedState();
     renderTypeToggle();
-    renderOutings();
+    renderDiscoverContent();
+  });
+});
+
+document.querySelectorAll(".discover-view-option").forEach((button) => {
+  button.addEventListener("click", () => {
+    state.discoverView = button.dataset.discoverView;
+    persistSavedState();
+    renderDiscoverView();
   });
 });
 
@@ -833,6 +1245,15 @@ document.querySelectorAll(".plan-tab").forEach((button) => {
   });
 });
 
+planSectionButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    state.activePlansTab = button.dataset.planSection;
+    persistSavedState();
+    renderPlansScreen();
+    closeNavDropdowns();
+    setActiveScreen("plans");
+  });
+});
 document.getElementById("open-create-placeholder").addEventListener("click", handleOpenCreatePlaceholder);
 
 document.querySelectorAll(".create-type-option").forEach((button) => {
@@ -850,6 +1271,28 @@ document.getElementById("create-back-button").addEventListener("click", () => {
 document.getElementById("create-publish-button").addEventListener("click", publishCreatedOuting);
 
 document.addEventListener("click", (event) => {
+  const navDropdownTrigger = event.target.closest(".nav-dropdown-trigger");
+  if (navDropdownTrigger) {
+    const dropdown = navDropdownTrigger.closest("[data-nav-dropdown]");
+    if (dropdown) {
+      toggleNavDropdown(dropdown);
+      setActiveScreen("plans");
+    }
+    return;
+  }
+
+  const planSectionTrigger = event.target.closest("[data-plan-section]");
+  if (planSectionTrigger) {
+    const nextTab = planSectionTrigger.dataset.planSection;
+    state.activePlansTab = nextTab;
+    persistSavedState();
+    syncPlanSelection();
+    renderPlansScreen();
+    closeNavDropdowns();
+    setActiveScreen("plans");
+    return;
+  }
+
   const createTypeTrigger = event.target.closest("[data-create-type]");
   if (createTypeTrigger) {
     setCreateType(createTypeTrigger.dataset.createType);
@@ -862,6 +1305,10 @@ document.addEventListener("click", (event) => {
     return;
   }
 
+  if (!event.target.closest("[data-nav-dropdown]")) {
+    closeNavDropdowns();
+  }
+
   const closeTrigger = event.target.closest("[data-close-modal]");
   if (!closeTrigger) return;
 
@@ -870,8 +1317,12 @@ document.addEventListener("click", (event) => {
   if (modalId === "create-modal") closeCreateModal();
 });
 
+if (searchInput) searchInput.value = state.searchTerm;
+if (categorySelect) categorySelect.value = state.activeCategory;
+
 renderTypeToggle();
+renderDiscoverView();
 resetCreateForm();
-renderOutings();
+renderDiscoverContent();
 renderPlansScreen();
 setActiveScreen("discover");

@@ -116,16 +116,19 @@ const outings = [
     title: "Speakeasy + Live Music",
     category: "Entertainment",
     date: "2026-11-08T20:15",
-    location: "Downtown Las Vegas",
+    location: "Pioneer & 7th Streets",
     budget: "$30–$50",
     outingType: "PUBLIC_OUTING",
     participationType: "PUBLIC_OUTING",
     description: "A low-light lounge crawl with live acoustic sets and a route designed around intimate venues and easy conversation.",
     image: "linear-gradient(135deg, rgba(20, 18, 45, 0.88), rgba(8, 102, 255, 0.48)), radial-gradient(circle at 55% 25%, rgba(0, 217, 255, 0.4), transparent 18%), linear-gradient(180deg, rgba(4,8,16,0.2), rgba(4,8,16,0.8))",
-    tags: ["Live music", "Nightlife", "Intimate venues"],
+    tags: ["Music", "Nightlife", "Social"],
     curated: false,
     creatorName: "Marlowe House",
-    attendance: "16 interested"
+    attendance: "16 interested",
+    capacity: 45,
+    locationType: "cross streets",
+    coordinates: { lat: 36.1711, lng: -115.1404 }
   },
   {
     id: "hidden-boutique",
@@ -148,16 +151,19 @@ const outings = [
     title: "Neon Cinema Social",
     category: "Entertainment",
     date: "2026-11-12T20:45",
-    location: "South Strip",
+    location: "Paradise Rd & Flamingo Rd",
     budget: "$20–$35",
     outingType: "PUBLIC_OUTING",
     participationType: "PUBLIC_OUTING",
     description: "A movie night meetup with a casual pre-show hangout and plenty of room to connect before the screening starts.",
     image: "linear-gradient(135deg, rgba(0, 217, 255, 0.72), rgba(18, 20, 52, 0.7)), radial-gradient(circle at 60% 25%, rgba(255,255,255,0.25), transparent 18%), linear-gradient(180deg, rgba(4,8,16,0.2), rgba(4,8,16,0.8))",
-    tags: ["Screening", "Night out", "Social"],
+    tags: ["Movies", "Social", "Cinema"],
     curated: false,
     creatorName: "Afterglow Cinema Club",
-    attendance: "22 interested"
+    attendance: "22 interested",
+    capacity: 30,
+    locationType: "cross streets",
+    coordinates: { lat: 36.1155, lng: -115.1724 }
   },
   {
     id: "laser-pool",
@@ -180,32 +186,38 @@ const outings = [
     title: "Culture Lab Session",
     category: "Arts & Culture",
     date: "2026-11-14T17:30",
-    location: "The District at Green Valley",
+    location: "Green Valley Pkwy & Arroyo Grande Blvd",
     budget: "$15–$25",
     outingType: "PUBLIC_OUTING",
     participationType: "PUBLIC_OUTING",
     description: "An interactive arts meetup with hands-on workshops, creative sharing, and casual conversations around local culture.",
     image: "linear-gradient(135deg, rgba(8, 102, 255, 0.58), rgba(0, 230, 207, 0.28)), radial-gradient(circle at 30% 20%, rgba(255,255,255,0.2), transparent 18%), linear-gradient(180deg, rgba(4,8,16,0.2), rgba(4,8,16,0.8))",
-    tags: ["Workshop", "Creative", "Community"],
+    tags: ["Art", "Culture", "Creative"],
     curated: false,
     creatorName: "Northline Collective",
-    attendance: "8 interested"
+    attendance: "8 interested",
+    capacity: 24,
+    locationType: "cross streets",
+    coordinates: { lat: 36.0553, lng: -115.0932 }
   },
   {
     id: "night-market",
     title: "Night Market Stroll",
     category: "Food & Drinks",
     date: "2026-11-15T18:00",
-    location: "Fremont Street",
+    location: "Fremont St & 7th St",
     budget: "$12–$22",
     outingType: "PUBLIC_OUTING",
     participationType: "PUBLIC_OUTING",
     description: "An easygoing evening walk through food stalls, live music, and pop-up vendors with a social rhythm built for discovery.",
     image: "linear-gradient(135deg, rgba(8, 102, 255, 0.76), rgba(0, 230, 207, 0.22)), radial-gradient(circle at 60% 25%, rgba(255,255,255,0.24), transparent 18%), linear-gradient(180deg, rgba(4,8,16,0.2), rgba(4,8,16,0.8))",
-    tags: ["Food hall", "Street energy", "People watch"],
+    tags: ["Food", "Music", "Street"],
     curated: false,
     creatorName: "Fremont Food Club",
-    attendance: "25 interested"
+    attendance: "25 interested",
+    capacity: 40,
+    locationType: "cross streets",
+    coordinates: { lat: 36.1715, lng: -115.1427 }
   }
 ];
 
@@ -228,7 +240,7 @@ const demoInvitations = [
     title: "Culture Lab Session",
     category: "Arts & Culture",
     date: "2026-11-14T17:30",
-    location: "The District at Green Valley",
+    location: "Green Valley Pkwy & Arroyo Grande Blvd",
     image: "linear-gradient(135deg, rgba(8, 102, 255, 0.58), rgba(0, 230, 207, 0.28)), radial-gradient(circle at 30% 20%, rgba(255,255,255,0.2), transparent 18%), linear-gradient(180deg, rgba(4,8,16,0.2), rgba(4,8,16,0.8))",
     outingType: "PUBLIC_OUTING",
     description: "A small creative lab session focused on thoughtful conversation, local culture, and hands-on workshops.",
@@ -240,7 +252,7 @@ const demoInvitations = [
     title: "Night Market Stroll",
     category: "Food & Drinks",
     date: "2026-11-15T18:00",
-    location: "Fremont Street",
+    location: "Fremont St & 7th St",
     image: "linear-gradient(135deg, rgba(8, 102, 255, 0.76), rgba(0, 230, 207, 0.22)), radial-gradient(circle at 60% 25%, rgba(255,255,255,0.24), transparent 18%), linear-gradient(180deg, rgba(4,8,16,0.2), rgba(4,8,16,0.8))",
     outingType: "PUBLIC_OUTING",
     description: "An easy evening route through food stalls, live music, and small-batch vendors with room to wander and connect.",
@@ -255,7 +267,7 @@ const demoPastOutings = [
     title: "Neon Cinema Social",
     category: "Entertainment",
     date: "2026-10-08T20:45",
-    location: "South Strip",
+    location: "Paradise Rd & Flamingo Rd",
     image: "linear-gradient(135deg, rgba(0, 217, 255, 0.72), rgba(18, 20, 52, 0.7)), radial-gradient(circle at 60% 25%, rgba(255,255,255,0.25), transparent 18%), linear-gradient(180deg, rgba(4,8,16,0.2), rgba(4,8,16,0.8))",
     outingType: "PUBLIC_OUTING",
     description: "The group watched a late screening and closed out the night with a casual coffee stop afterward.",
@@ -284,5 +296,32 @@ const demoPastOutings = [
     outingType: "OPEN_OUTING",
     description: "A gallery walk through the district with plenty of room to talk, browse, and discover something new.",
     creatorName: "Lantern Studio"
+  }
+];
+
+window.demoNewsFeed = [
+  {
+    kind: "activity",
+    label: "Private community update",
+    title: "A small group is planning a weekend meetup in the valley.",
+    description: "A low-key private gathering is coming together with an easygoing social vibe and a relaxed, neighborhood-friendly pace."
+  },
+  {
+    kind: "story",
+    label: "Demo success story",
+    title: "A local food meetup brought new people together.",
+    description: "A relaxed evening out around the city created space for conversation, connection, and a few spontaneous recommendations."
+  },
+  {
+    kind: "activity",
+    label: "Private community update",
+    title: "A private game night is being organized for this week.",
+    description: "A casual group is coordinating a playful session with a comfortable, invite-only setup and a welcoming energy."
+  },
+  {
+    kind: "story",
+    label: "Demo success story",
+    title: "A weekend outing sparked a few new plans for the week ahead.",
+    description: "One community outing led to a handful of follow-up recommendations, making it easier to discover more things to do nearby."
   }
 ];
