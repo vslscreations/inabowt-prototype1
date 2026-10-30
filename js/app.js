@@ -462,6 +462,7 @@ function openNotificationCenter() {
   center.classList.remove("hidden");
   center.setAttribute("aria-hidden", "false");
   button.setAttribute("aria-expanded", "true");
+  document.body.classList.add("notification-open");
   renderNotifications();
 }
 
@@ -473,6 +474,7 @@ function closeNotificationCenter() {
   center.classList.add("hidden");
   center.setAttribute("aria-hidden", "true");
   button.setAttribute("aria-expanded", "false");
+  document.body.classList.remove("notification-open");
   const detail = document.getElementById("notification-detail");
   if (detail) {
     detail.classList.add("hidden");
@@ -1959,6 +1961,26 @@ function closeCreateModal() {
   resetCreateForm();
 }
 
+function closeNavDrawer() {
+  const drawer = document.getElementById("nav-drawer");
+  const button = document.getElementById("nav-menu-button");
+  if (!drawer || !button) return;
+
+  drawer.classList.add("hidden");
+  drawer.setAttribute("aria-hidden", "true");
+  button.setAttribute("aria-expanded", "false");
+}
+
+function openNavDrawer() {
+  const drawer = document.getElementById("nav-drawer");
+  const button = document.getElementById("nav-menu-button");
+  if (!drawer || !button) return;
+
+  drawer.classList.remove("hidden");
+  drawer.setAttribute("aria-hidden", "false");
+  button.setAttribute("aria-expanded", "true");
+}
+
 function setActiveScreen(screenName) {
   Object.entries(screens).forEach(([key, screen]) => {
     screen.classList.toggle("is-active", key === screenName);
@@ -1969,8 +1991,8 @@ function setActiveScreen(screenName) {
     button.classList.toggle("is-active", isActive);
   });
 
-  document.querySelectorAll(".mobile-nav-button").forEach((button) => {
-    const isActive = button.dataset.screen === screenName;
+  document.querySelectorAll(".nav-drawer-link").forEach((button) => {
+    const isActive = button.dataset.screen === screenName && !(button.dataset.localFeed === "true");
     button.classList.toggle("is-active", isActive);
   });
 
@@ -2129,7 +2151,57 @@ if (notificationDetail) {
   });
 }
 
-document.getElementById("open-create-placeholder").addEventListener("click", handleOpenCreatePlaceholder);
+const navMenuButton = document.getElementById("nav-menu-button");
+if (navMenuButton) {
+  navMenuButton.addEventListener("click", () => {
+    const drawer = document.getElementById("nav-drawer");
+    if (!drawer) return;
+    if (drawer.classList.contains("hidden")) {
+      openNavDrawer();
+    } else {
+      closeNavDrawer();
+    }
+  });
+}
+
+const navCloseButton = document.getElementById("nav-close-button");
+if (navCloseButton) {
+  navCloseButton.addEventListener("click", closeNavDrawer);
+}
+
+const navDrawerBackdrop = document.querySelector("[data-nav-close='true']");
+if (navDrawerBackdrop) {
+  navDrawerBackdrop.addEventListener("click", closeNavDrawer);
+}
+
+document.querySelectorAll(".nav-drawer-link").forEach((button) => {
+  button.addEventListener("click", () => {
+    if (button.dataset.createNav === "true") {
+      handleOpenCreatePlaceholder();
+      closeNavDrawer();
+      return;
+    }
+
+    if (button.dataset.localFeed === "true") {
+      state.discoverView = "regular";
+      persistSavedState();
+      renderDiscoverView();
+      setActiveScreen("discover");
+      closeNavDrawer();
+      const feed = document.getElementById("news-feed");
+      if (feed) {
+        feed.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+      return;
+    }
+
+    if (button.dataset.screen) {
+      setActiveScreen(button.dataset.screen);
+    }
+
+    closeNavDrawer();
+  });
+});
 
 const profileForm = document.getElementById("profile-form");
 if (profileForm) {
@@ -2255,4 +2327,5 @@ resetCreateForm();
 renderDiscoverContent();
 renderPlansScreen();
 ensureNotificationReady();
+closeNotificationCenter();
 setActiveScreen("discover");
