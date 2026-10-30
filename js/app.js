@@ -123,6 +123,7 @@ function loadSavedState() {
       createdOutings: Array.isArray(saved.createdOutings) ? saved.createdOutings : [],
       createdByUser: saved.createdByUser || {},
       persistedOutings: Array.isArray(saved.persistedOutings) ? saved.persistedOutings : [],
+      notifications: Array.isArray(saved.notifications) ? saved.notifications : [],
       userProfile: {
         ...getDefaultUserProfile(),
         ...profile,
@@ -144,6 +145,7 @@ function loadSavedState() {
       createdOutings: [],
       createdByUser: {},
       persistedOutings: [],
+      notifications: [],
       userProfile: getDefaultUserProfile()
     };
   }
@@ -162,6 +164,7 @@ const state = {
   createdOutings: [],
   createdByUser: {},
   persistedOutings: [],
+  notifications: [],
   userProfile: getDefaultUserProfile(),
   ...loadSavedState()
 };
@@ -193,9 +196,476 @@ function persistSavedState() {
       createdOutings: state.createdOutings,
       createdByUser: state.createdByUser,
       persistedOutings: outings.filter((outing) => state.createdOutings.includes(outing.id)),
+      notifications: Array.isArray(state.notifications) ? state.notifications : [],
       userProfile: state.userProfile || getDefaultUserProfile()
     })
   );
+}
+
+function buildNotificationSignature(item) {
+  return [item.type, item.outingId || "", item.invitationId || "", item.title || "", item.description || ""].join("::");
+}
+
+function getNotificationSeedData() {
+  const seed = Array.isArray(window.demoNotificationSeed) ? window.demoNotificationSeed : [];
+  return seed.map((item) => ({
+    id: item.id,
+    type: item.type,
+    title: item.title,
+    description: item.description,
+    timestamp: item.timestamp,
+    unread: Boolean(item.unread),
+    dismissed: Boolean(item.dismissed),
+    avatar: item.avatar || "N",
+    source: item.source || "seed",
+    from: item.from || "Inabowt",
+    conversation: Array.isArray(item.conversation) ? item.conversation : [],
+    destination: item.destination || null,
+    outingId: item.outingId || null,
+    invitationId: item.invitationId || null
+  }));
+}
+
+function normalizeNotificationEntry(item) {
+  return {
+    id: item.id || `notification-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    type: item.type || "activity",
+    title: item.title || "Inabowt update",
+    description: item.description || "You have a new update.",
+    timestamp: item.timestamp || new Date().toISOString(),
+    unread: Boolean(item.unread),
+    dismissed: Boolean(item.dismissed),
+    avatar: item.avatar || "I",
+    source: item.source || "generated",
+    from: item.from || "Inabowt",
+    conversation: Array.isArray(item.conversation) ? item.conversation : [],
+    destination: item.destination || null,
+    outingId: item.outingId || null,
+    invitationId: item.invitationId || null
+  };
+}
+
+function notifyExists(entry) {
+  const signature = buildNotificationSignature(entry);
+  return state.notifications.some((item) => buildNotificationSignature(item) === signature);
+}
+
+function addNotification(entry) {
+  const normalized = normalizeNotificationEntry(entry);
+  if (notifyExists(normalized)) {
+    return;
+  }
+
+  state.notifications = [normalized, ...state.notifications];
+  persistSavedState();
+  renderNotifications();
+}
+
+function getDayLabel(dateValue) {
+  return new Intl.DateTimeFormat("en-US", { weekday: "short" }).format(parseDateTime(dateValue)).slice(0, 3);
+}
+
+function buildRecommendationNotifications() {
+  if (!state.userProfile) {
+    return [];
+  }
+
+  const interests = (state.userProfile.interests || []).map((interest) => interest.toLowerCase());
+  const availability = new Set((state.userProfile.availability || []).map((day) => day.toLowerCase()));
+  const neighborhood = String(state.userProfile.neighborhood || "").trim().toLowerCase();
+  const radius = Number(state.userProfile.activityRadius || 10);
+  const now = new Date();
+
+  return outings
+    .filter((outing) => {
+      if (outing.outingType === "PRIVATE_OUTING") return false;
+      if (parseDateTime(outing.date) <= now) return false;
+      return true;
+    })
+    .map((outing) => {
+      let score = 0;
+      const tags = (outing.tags || []).map((tag) => String(tag).toLowerCase());
+      const locationText = String(outing.location || "").toLowerCase();
+      const categoryText = String(outing.category || "").toLowerCase();
+
+      if (interests.includes(categoryText)) score += 3;
+      if ((outing.tags || []).some((tag) => interests.some((interest) => tag.toLowerCase().includes(interest)))) score += 2;
+      if (neighborhood && locationText.includes(neighborhood)) score += 2;
+      if (availability.has(getDayLabel(outing.date).toLowerCase())) score += 1;
+      if (radius >= 15) score += 1;
+      if (Number(outing.capacity || 0) > 0) score += 1;
+
+      return { outing, score, tags };
+    })
+    .filter(({ outing, score }) => {
+      const alreadyGenerated = state.notifications.some((item) => item.type === "recommendation" && item.outingId === outing.id && !item.dismissed);
+      return !alreadyGenerated && score > 0;
+    })
+    .sort((left, right) => right.score - left.score)
+    .slice(0, 3)
+    .map(({ outing }) => ({
+      id: `recommendation-${outing.id}`,
+      type: "recommendation",
+      title: `Recommended nearby: ${outing.title}`,
+      description: `This ${outing.category.toLowerCase()} outing matches your ${state.userProfile.interests?.length ? "saved interests" : "activity style"} and fits your current availability.`,
+      timestamp: new Date().toISOString(),
+      unread: true,
+      dismissed: false,
+      avatar: "✦",
+      source: "recommendation",
+      from: "Inabowt",
+      outingId: outing.id,
+      destination: { screen: "discover", outingId: outing.id }
+    }));
+}
+
+function syncRecommendationNotifications() {
+  const recommendationBatch = buildRecommendationNotifications();
+  recommendationBatch.forEach((item) => {
+    if (!notifyExists(item)) {
+      state.notifications.unshift(normalizeNotificationEntry(item));
+    }
+  });
+}
+
+function seedNotificationState() {
+  if (!Array.isArray(state.notifications) || state.notifications.length) {
+    return;
+  }
+
+  state.notifications = getNotificationSeedData();
+  syncRecommendationNotifications();
+  persistSavedState();
+  renderNotifications();
+}
+
+function getUnreadNotificationCount() {
+  if (!Array.isArray(state.notifications)) {
+    return 0;
+  }
+
+  return state.notifications.filter((notification) => !notification.dismissed && notification.unread).length;
+}
+
+function formatRelativeTime(timestamp) {
+  const diffMs = Date.now() - new Date(timestamp).getTime();
+  const minuteMs = 60 * 1000;
+  const hourMs = 60 * minuteMs;
+  const dayMs = 24 * hourMs;
+
+  if (diffMs < minuteMs) return "Just now";
+  if (diffMs < hourMs) return `${Math.max(1, Math.round(diffMs / minuteMs))}m ago`;
+  if (diffMs < dayMs) return `${Math.max(1, Math.round(diffMs / hourMs))}h ago`;
+  return `${Math.max(1, Math.round(diffMs / dayMs))}d ago`;
+}
+
+function renderNotificationBadge() {
+  const button = document.getElementById("notification-button");
+  const badge = document.getElementById("notification-badge");
+  const unreadCount = getUnreadNotificationCount();
+
+  if (!button || !badge) return;
+
+  if (unreadCount > 0) {
+    badge.textContent = String(unreadCount);
+    badge.classList.remove("hidden");
+    button.setAttribute("aria-label", `Open notifications, ${unreadCount} unread`);
+  } else {
+    badge.textContent = "0";
+    badge.classList.add("hidden");
+    button.setAttribute("aria-label", "Open notifications");
+  }
+}
+
+function renderNotifications() {
+  const list = document.getElementById("notification-list");
+  const emptyState = document.getElementById("notification-empty");
+  const notificationCenter = document.getElementById("notification-center");
+  renderNotificationBadge();
+
+  if (!list || !emptyState || !notificationCenter) return;
+
+  const items = [...(state.notifications || [])]
+    .filter((notification) => !notification.dismissed)
+    .sort((left, right) => new Date(right.timestamp) - new Date(left.timestamp));
+
+  if (!items.length) {
+    list.innerHTML = "";
+    emptyState.classList.remove("hidden");
+    return;
+  }
+
+  emptyState.classList.add("hidden");
+
+  list.innerHTML = items.map((notification) => {
+    const typeLabel = notification.type === "message" ? "Message" : notification.type === "recommendation" ? "Recommendation" : "Activity";
+    const icon = notification.type === "message" ? (notification.avatar || "A") : notification.type === "recommendation" ? "✦" : "•";
+    const className = notification.unread ? "is-unread" : "";
+
+    return `
+      <article class="notification-card ${className}" data-notification-id="${notification.id}" tabindex="0">
+        <div class="notification-avatar ${notification.type}">${icon}</div>
+        <div class="notification-copy">
+          <div class="notification-meta-row">
+            <span class="notification-type">${typeLabel}</span>
+            <span class="notification-time">${formatRelativeTime(notification.timestamp)}</span>
+          </div>
+          <h3>${notification.title}</h3>
+          <p>${notification.description}</p>
+        </div>
+        <div class="notification-actions">
+          <button class="notification-action subtle" type="button" data-read-id="${notification.id}">${notification.unread ? "Read" : "Open"}</button>
+          <button class="notification-action danger" type="button" data-dismiss-id="${notification.id}">Dismiss</button>
+        </div>
+      </article>
+    `;
+  }).join("");
+
+  list.querySelectorAll(".notification-card").forEach((card) => {
+    card.addEventListener("click", (event) => {
+      if (event.target.closest("button")) {
+        return;
+      }
+
+      const id = card.dataset.notificationId;
+      if (!id) return;
+      handleNotificationSelection(id);
+    });
+  });
+
+  list.querySelectorAll("[data-read-id]").forEach((button) => {
+    button.addEventListener("click", (event) => {
+      event.stopPropagation();
+      const id = button.dataset.readId;
+      handleNotificationSelection(id);
+    });
+  });
+
+  list.querySelectorAll("[data-dismiss-id]").forEach((button) => {
+    button.addEventListener("click", (event) => {
+      event.stopPropagation();
+      const id = button.dataset.dismissId;
+      const target = state.notifications.find((notification) => notification.id === id);
+      if (!target) return;
+      target.dismissed = true;
+      persistSavedState();
+      renderNotifications();
+    });
+  });
+}
+
+function openNotificationCenter() {
+  const center = document.getElementById("notification-center");
+  const button = document.getElementById("notification-button");
+  if (!center || !button) return;
+
+  center.classList.remove("hidden");
+  center.setAttribute("aria-hidden", "false");
+  button.setAttribute("aria-expanded", "true");
+  renderNotifications();
+}
+
+function closeNotificationCenter() {
+  const center = document.getElementById("notification-center");
+  const button = document.getElementById("notification-button");
+  if (!center || !button) return;
+
+  center.classList.add("hidden");
+  center.setAttribute("aria-hidden", "true");
+  button.setAttribute("aria-expanded", "false");
+  const detail = document.getElementById("notification-detail");
+  if (detail) {
+    detail.classList.add("hidden");
+    detail.innerHTML = "";
+  }
+}
+
+function showNotificationDetail(notification) {
+  const detail = document.getElementById("notification-detail");
+  if (!detail) return;
+
+  if (notification.type === "message") {
+    const conversation = Array.isArray(notification.conversation) && notification.conversation.length
+      ? notification.conversation
+      : [
+          { author: notification.from || "Inabowt", text: notification.description },
+          { author: "You", text: "I’m on it. See you soon." }
+        ];
+
+    detail.innerHTML = `
+      <div class="notification-detail-panel">
+        <div class="notification-detail-header">
+          <div class="notification-avatar message">${notification.avatar || "A"}</div>
+          <div>
+            <span class="notification-type">Message</span>
+            <h3>${notification.title}</h3>
+          </div>
+          <button type="button" class="notification-close-detail" data-close-notification-detail>×</button>
+        </div>
+        <div class="notification-thread">
+          ${conversation.map((entry) => `
+            <div class="notification-thread-item ${entry.author === "You" ? "is-self" : ""}">
+              <strong>${entry.author}</strong>
+              <p>${entry.text}</p>
+            </div>
+          `).join("")}
+        </div>
+      </div>
+    `;
+  } else {
+    const destinationLabel = notification.outingId ? "Open outing details" : notification.invitationId ? "Open invitation" : "See in app";
+    detail.innerHTML = `
+      <div class="notification-detail-panel">
+        <div class="notification-detail-header">
+          <div class="notification-avatar ${notification.type}">${notification.type === "recommendation" ? "✦" : "•"}</div>
+          <div>
+            <span class="notification-type">${notification.type === "recommendation" ? "Recommendation" : "Update"}</span>
+            <h3>${notification.title}</h3>
+          </div>
+          <button type="button" class="notification-close-detail" data-close-notification-detail>×</button>
+        </div>
+        <p class="notification-detail-copy">${notification.description}</p>
+        <button type="button" class="primary-button notification-detail-button" data-open-notification-target="${notification.id}">${destinationLabel}</button>
+      </div>
+    `;
+  }
+
+  detail.classList.remove("hidden");
+
+  const closeButton = detail.querySelector("[data-close-notification-detail]");
+  if (closeButton) {
+    closeButton.addEventListener("click", () => {
+      detail.classList.add("hidden");
+      detail.innerHTML = "";
+    });
+  }
+
+  const openButton = detail.querySelector("[data-open-notification-target]");
+  if (openButton) {
+    openButton.addEventListener("click", () => {
+      const id = openButton.dataset.openNotificationTarget;
+      handleNotificationSelection(id);
+    });
+  }
+}
+
+function handleNotificationSelection(notificationId) {
+  const target = state.notifications.find((notification) => notification.id === notificationId);
+  if (!target) return;
+
+  target.unread = false;
+  persistSavedState();
+  renderNotifications();
+
+  if (target.type === "message") {
+    showNotificationDetail(target);
+    return;
+  }
+
+  const outingId = target.outingId || target.destination?.outingId;
+  const invitationId = target.invitationId;
+
+  if (outingId) {
+    closeNotificationCenter();
+    openEventDetails(outingId);
+    return;
+  }
+
+  if (invitationId) {
+    closeNotificationCenter();
+    state.activePlansTab = "INVITATIONS";
+    syncPlanSelection();
+    renderPlansScreen();
+    setActiveScreen("plans");
+    return;
+  }
+
+  if (target.type === "recommendation") {
+    closeNotificationCenter();
+    setActiveScreen("discover");
+    return;
+  }
+
+  showNotificationDetail(target);
+}
+
+function markAllNotificationsRead() {
+  state.notifications = (state.notifications || []).map((notification) => ({
+    ...notification,
+    unread: false
+  }));
+  persistSavedState();
+  renderNotifications();
+}
+
+function createOutingNotification(type, outing, extra) {
+  const base = {
+    id: `activity-${type}-${outing.id}-${Date.now()}`,
+    type: "activity",
+    title: extra.title,
+    description: extra.description,
+    timestamp: new Date().toISOString(),
+    unread: true,
+    dismissed: false,
+    avatar: "•",
+    source: "activity",
+    from: "Inabowt",
+    outingId: outing.id,
+    destination: { screen: "plans", outingId: outing.id }
+  };
+
+  addNotification(base);
+}
+
+function syncActivityNotificationsForInvite(invite, action) {
+  const event = getEventById(invite.eventId);
+  const title = action === "accept"
+    ? "Invitation accepted"
+    : "Invitation declined";
+  const description = action === "accept"
+    ? `You accepted the invite for ${event?.title || invite.title}.`
+    : `You declined the invite for ${event?.title || invite.title}.`;
+
+  addNotification({
+    id: `invite-${action}-${invite.id}`,
+    type: "activity",
+    title,
+    description,
+    timestamp: new Date().toISOString(),
+    unread: true,
+    dismissed: false,
+    avatar: "•",
+    source: "activity",
+    from: "Inabowt",
+    outingId: invite.eventId,
+    invitationId: invite.id,
+    destination: { screen: "plans", invitationId: invite.id }
+  });
+}
+
+function syncRecommendationAfterProfileUpdate() {
+  const existingRecommendationIds = new Set((state.notifications || []).filter((item) => item.type === "recommendation").map((item) => item.outingId).filter(Boolean));
+  const recommendations = buildRecommendationNotifications();
+  recommendations.forEach((item) => {
+    if (!existingRecommendationIds.has(item.outingId)) {
+      state.notifications.unshift(normalizeNotificationEntry(item));
+    }
+  });
+  persistSavedState();
+  renderNotifications();
+}
+
+function ensureNotificationReady() {
+  if (!state.notifications || !Array.isArray(state.notifications)) {
+    state.notifications = [];
+  }
+
+  if (!state.notifications.length) {
+    seedNotificationState();
+  }
+
+  syncRecommendationNotifications();
+  renderNotifications();
 }
 
 function parseDateTime(value) {
@@ -227,25 +697,44 @@ function getSortedOutings(list) {
   return [...list].sort((a, b) => getEventDateValue(a) - getEventDateValue(b));
 }
 
+function normalizeLocationText(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 function getLocationCoords(outing) {
   const direct = outing?.coordinates;
   if (direct && typeof direct.lat === "number" && typeof direct.lng === "number") {
     return { lat: direct.lat, lng: direct.lng, type: direct.type || "exact address" };
   }
 
-  const addressString = String(outing?.address || outing?.location || "").trim();
-  const exactAddress = addressString ? locationCoordinates[addressString] : null;
-  if (exactAddress && typeof exactAddress.lat === "number" && typeof exactAddress.lng === "number") {
-    return { lat: exactAddress.lat, lng: exactAddress.lng, type: exactAddress.type || "address" };
+  const candidateValues = [outing?.address, outing?.location]
+    .filter((value) => typeof value === "string" && value.trim())
+    .map((value) => String(value).trim());
+
+  const normalizedCandidates = candidateValues.map(normalizeLocationText);
+
+  const exactMatch = Object.entries(locationCoordinates).find(([key, value]) => {
+    const normalizedKey = normalizeLocationText(key);
+    return normalizedCandidates.some((candidate) => candidate === normalizedKey || candidate.includes(normalizedKey) || normalizedKey.includes(candidate));
+  });
+
+  if (exactMatch) {
+    const [, coords] = exactMatch;
+    return { lat: coords.lat, lng: coords.lng, type: coords.type || "area" };
   }
 
-  const namedLocation = outing?.location ? locationCoordinates[outing.location] : null;
-  if (namedLocation && typeof namedLocation.lat === "number" && typeof namedLocation.lng === "number") {
-    return { lat: namedLocation.lat, lng: namedLocation.lng, type: namedLocation.type || "area" };
+  const downtownFallback = { lat: 36.1699, lng: -115.1398, type: "area" };
+  const addressText = candidateValues.join(" ");
+  if (addressText && /las vegas|vegas|summerlin|strip|downtown|arts district|fremont|green valley|lake mead|red rock/i.test(addressText)) {
+    return downtownFallback;
   }
 
-  const fallback = { lat: 36.1699, lng: -115.1398, type: "area" };
-  return { lat: fallback.lat, lng: fallback.lng, type: fallback.type || "area" };
+  return { lat: downtownFallback.lat, lng: downtownFallback.lng, type: downtownFallback.type || "area" };
 }
 
 function normalizePublicTags(rawTags) {
@@ -613,6 +1102,7 @@ function handleProfileSave(event) {
     availability: Array.isArray(profile.availability) ? profile.availability : []
   };
   persistSavedState();
+  syncRecommendationAfterProfileUpdate();
   renderProfileScreen();
   showProfileToast("Profile saved");
 }
@@ -1023,10 +1513,12 @@ function renderPlansScreen() {
       if (button.dataset.inviteAction === "accept") {
         state.invitationStatus[invite.eventId] = "ACCEPTED";
         state.participationStatus[invite.eventId] = "JOINED";
+        syncActivityNotificationsForInvite(invite, "accept");
       }
 
       if (button.dataset.inviteAction === "decline") {
         state.invitationStatus[invite.eventId] = "DECLINED";
+        syncActivityNotificationsForInvite(invite, "decline");
       }
 
       persistSavedState();
@@ -1150,6 +1642,27 @@ function openEventDetails(id) {
 
       persistSavedState();
       renderPlansScreen();
+      const activityTitle = outingType === "OPEN_OUTING"
+        ? "You joined an outing"
+        : "You expressed interest in an outing";
+      const activityDescription = outingType === "OPEN_OUTING"
+        ? `You joined ${event.title}. Your plans are now updated.`
+        : `You expressed interest in ${event.title}. The host will review it.`;
+
+      addNotification({
+        id: `activity-user-${event.id}-${Date.now()}`,
+        type: "activity",
+        title: activityTitle,
+        description: activityDescription,
+        timestamp: new Date().toISOString(),
+        unread: true,
+        dismissed: false,
+        avatar: "•",
+        source: "activity",
+        from: "Inabowt",
+        outingId: event.id,
+        destination: { screen: "plans", outingId: event.id }
+      });
       interactionButton.textContent = outingType === "OPEN_OUTING" ? "Joined" : "Interest recorded";
       interactionButton.disabled = true;
       interactionButton.style.opacity = "0.8";
@@ -1410,6 +1923,7 @@ function publishCreatedOuting() {
   renderOutings();
   renderPlansScreen();
   setActiveScreen("discover");
+  renderDiscoverContent();
   showToast(`${outingTypeMeta[type].label} published`);
 }
 
@@ -1437,6 +1951,10 @@ function setActiveScreen(screenName) {
   if (screenName === "plans") {
     renderPlansScreen();
     syncPlanSelection();
+  }
+
+  if (screenName === "discover") {
+    renderDiscoverContent();
   }
 
   if (screenName === "profile") {
@@ -1520,6 +2038,70 @@ document.getElementById("calendar-next-button").addEventListener("click", () => 
   renderDiscoverView();
   persistSavedState();
 });
+
+const notificationButton = document.getElementById("notification-button");
+if (notificationButton) {
+  notificationButton.addEventListener("click", () => {
+    const center = document.getElementById("notification-center");
+    if (!center) return;
+    if (center.classList.contains("hidden")) {
+      openNotificationCenter();
+    } else {
+      closeNotificationCenter();
+    }
+  });
+}
+
+const notificationCloseButton = document.getElementById("notification-close");
+if (notificationCloseButton) {
+  notificationCloseButton.addEventListener("click", closeNotificationCenter);
+}
+
+const markAllReadButton = document.getElementById("mark-all-read");
+if (markAllReadButton) {
+  markAllReadButton.addEventListener("click", markAllNotificationsRead);
+}
+
+const notificationList = document.getElementById("notification-list");
+if (notificationList) {
+  notificationList.addEventListener("click", (event) => {
+    const readButton = event.target.closest("[data-read-id]");
+    if (readButton) {
+      event.stopPropagation();
+      handleNotificationSelection(readButton.dataset.readId);
+      return;
+    }
+
+    const dismissButton = event.target.closest("[data-dismiss-id]");
+    if (dismissButton) {
+      event.stopPropagation();
+      const target = state.notifications.find((notification) => notification.id === dismissButton.dataset.dismissId);
+      if (target) {
+        target.dismissed = true;
+        persistSavedState();
+        renderNotifications();
+      }
+      return;
+    }
+
+    const card = event.target.closest(".notification-card");
+    if (card) {
+      handleNotificationSelection(card.dataset.notificationId);
+    }
+  });
+}
+
+const notificationDetail = document.getElementById("notification-detail");
+if (notificationDetail) {
+  notificationDetail.addEventListener("click", (event) => {
+    const closeButton = event.target.closest("[data-close-notification-detail]");
+    if (closeButton) {
+      event.stopPropagation();
+      notificationDetail.classList.add("hidden");
+      notificationDetail.innerHTML = "";
+    }
+  });
+}
 
 document.getElementById("open-create-placeholder").addEventListener("click", handleOpenCreatePlaceholder);
 
@@ -1646,4 +2228,5 @@ renderDiscoverView();
 resetCreateForm();
 renderDiscoverContent();
 renderPlansScreen();
+ensureNotificationReady();
 setActiveScreen("discover");

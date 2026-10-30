@@ -312,6 +312,57 @@ const demoPastOutings = [
   }
 ];
 
+window.demoNotificationSeed = [
+  {
+    id: "msg-alex-1",
+    type: "message",
+    title: "Alex sent you a message.",
+    description: "I can meet by the entrance around 7:30 for Saturday's outing.",
+    timestamp: new Date(Date.now() - 1000 * 60 * 26).toISOString(),
+    unread: true,
+    dismissed: false,
+    avatar: "A",
+    source: "seed",
+    from: "Alex",
+    conversation: [
+      { author: "Alex", text: "Hey! I can meet by the entrance around 7:30 if that works for you." },
+      { author: "You", text: "Perfect — see you there." }
+    ]
+  },
+  {
+    id: "msg-jordan-1",
+    type: "message",
+    title: "Jordan replied about Saturday's outing.",
+    description: "They said the group is keeping it casual and low-key.",
+    timestamp: new Date(Date.now() - 1000 * 60 * 80).toISOString(),
+    unread: true,
+    dismissed: false,
+    avatar: "J",
+    source: "seed",
+    from: "Jordan",
+    conversation: [
+      { author: "Jordan", text: "Saturday is relaxed. We can keep the route easy and wander a bit." },
+      { author: "You", text: "That sounds great." }
+    ]
+  },
+  {
+    id: "msg-taylor-1",
+    type: "message",
+    title: "Taylor wants to coordinate plans.",
+    description: "They asked if you want to team up for the evening route.",
+    timestamp: new Date(Date.now() - 1000 * 60 * 160).toISOString(),
+    unread: false,
+    dismissed: false,
+    avatar: "T",
+    source: "seed",
+    from: "Taylor",
+    conversation: [
+      { author: "Taylor", text: "Want to coordinate on the evening route so we can stay together?" },
+      { author: "You", text: "Absolutely — I’m in." }
+    ]
+  }
+];
+
 window.demoNewsFeed = [
   {
     kind: "activity",
