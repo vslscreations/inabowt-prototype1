@@ -432,6 +432,14 @@ textarea:focus-visible {
   overflow: hidden;
 }
 
+.leaflet-tile {
+  filter: invert(0.9) hue-rotate(180deg) brightness(0.75) contrast(1.35) saturate(0.7);
+}
+
+.leaflet-control-attribution {
+  display: none !important;
+}
+
 .leaflet-control-zoom a {
   background: rgba(14, 19, 31, 0.96) !important;
   color: #edf4ff !important;

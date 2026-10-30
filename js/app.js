@@ -546,11 +546,11 @@ function renderMapView() {
       attributionControl: false
     }).setView([36.1699, -115.1398], 10.5);
 
-    window.L.tileLayer("https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png", {
-      attribution: '&copy; OpenStreetMap contributors &copy; Stadia Maps',
-      maxZoom: 20,
+    window.L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: '&copy; OpenStreetMap contributors',
+      maxZoom: 19,
       noWrap: true,
-      subdomains: "abcd"
+      subdomains: "abc"
     }).addTo(map);
 
     mapContainer._inabowtMap = map;
