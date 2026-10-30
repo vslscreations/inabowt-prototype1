@@ -174,12 +174,131 @@
         </section>
 
         <section id="profile-page" class="screen" aria-label="Profile screen">
-          <div class="placeholder-panel">
-            <p class="eyebrow">Profile</p>
-            <h2>Tell us what you like</h2>
-            <p>
-              A future profile experience will store preferences, social intent, and your favorite activity styles.
-            </p>
+          <div class="profile-shell">
+            <div class="profile-header">
+              <p class="eyebrow">Profile</p>
+              <h2>Tell us what you like</h2>
+            </div>
+
+            <form id="profile-form" class="profile-form" novalidate>
+              <div class="profile-card">
+                <div class="profile-photo-panel">
+                  <div id="profile-photo-preview" class="profile-photo-preview" aria-label="Profile photo preview"></div>
+                  <input id="profile-photo-input" type="file" accept="image/*" aria-label="Upload a profile photo" />
+                  <button type="button" id="profile-photo-remove" class="secondary-button compact profile-photo-remove">Remove photo</button>
+                </div>
+
+                <div class="profile-fields">
+                  <label class="field-group">
+                    <span>Display name</span>
+                    <input id="profile-display-name" name="displayName" type="text" maxlength="40" placeholder="Your name" />
+                  </label>
+
+                  <label class="field-group">
+                    <span>About me</span>
+                    <textarea id="profile-bio" name="bio" rows="4" maxlength="180" placeholder="Tell people what kinds of plans you enjoy."></textarea>
+                    <small id="profile-bio-counter" class="profile-counter">0/180</small>
+                  </label>
+
+                  <div class="field-grid two-col">
+                    <label class="field-group">
+                      <span>Neighborhood</span>
+                      <input id="profile-neighborhood" name="neighborhood" type="text" maxlength="60" placeholder="Downtown / Summerlin / Arts District" />
+                    </label>
+
+                    <label class="field-group">
+                      <span>Activity radius</span>
+                      <select id="profile-activity-radius" name="activityRadius">
+                        <option value="5">5 miles</option>
+                        <option value="10">10 miles</option>
+                        <option value="15">15 miles</option>
+                        <option value="25">25 miles</option>
+                        <option value="50">50 miles</option>
+                      </select>
+                    </label>
+                  </div>
+
+                  <div class="profile-block">
+                    <span class="profile-block-title">Interests</span>
+                    <div class="profile-chip-grid">
+                      <label class="profile-chip">
+                        <input class="profile-interest-option" type="checkbox" value="Food & Drinks" />
+                        <span>Food & Drinks</span>
+                      </label>
+                      <label class="profile-chip">
+                        <input class="profile-interest-option" type="checkbox" value="Outdoors" />
+                        <span>Outdoors</span>
+                      </label>
+                      <label class="profile-chip">
+                        <input class="profile-interest-option" type="checkbox" value="Games" />
+                        <span>Games</span>
+                      </label>
+                      <label class="profile-chip">
+                        <input class="profile-interest-option" type="checkbox" value="Entertainment" />
+                        <span>Entertainment</span>
+                      </label>
+                      <label class="profile-chip">
+                        <input class="profile-interest-option" type="checkbox" value="Arts & Culture" />
+                        <span>Arts & Culture</span>
+                      </label>
+                      <label class="profile-chip">
+                        <input class="profile-interest-option" type="checkbox" value="Nightlife" />
+                        <span>Nightlife</span>
+                      </label>
+                      <label class="profile-chip">
+                        <input class="profile-interest-option" type="checkbox" value="Fitness" />
+                        <span>Fitness</span>
+                      </label>
+                      <label class="profile-chip">
+                        <input class="profile-interest-option" type="checkbox" value="Unique Experiences" />
+                        <span>Unique Experiences</span>
+                      </label>
+                    </div>
+                  </div>
+
+                  <div class="profile-block">
+                    <span class="profile-block-title">Availability</span>
+                    <div class="profile-chip-grid">
+                      <label class="profile-chip compact-chip">
+                        <input class="profile-availability-option" type="checkbox" value="Sun" />
+                        <span>Sun</span>
+                      </label>
+                      <label class="profile-chip compact-chip">
+                        <input class="profile-availability-option" type="checkbox" value="Mon" />
+                        <span>Mon</span>
+                      </label>
+                      <label class="profile-chip compact-chip">
+                        <input class="profile-availability-option" type="checkbox" value="Tue" />
+                        <span>Tue</span>
+                      </label>
+                      <label class="profile-chip compact-chip">
+                        <input class="profile-availability-option" type="checkbox" value="Wed" />
+                        <span>Wed</span>
+                      </label>
+                      <label class="profile-chip compact-chip">
+                        <input class="profile-availability-option" type="checkbox" value="Thu" />
+                        <span>Thu</span>
+                      </label>
+                      <label class="profile-chip compact-chip">
+                        <input class="profile-availability-option" type="checkbox" value="Fri" />
+                        <span>Fri</span>
+                      </label>
+                      <label class="profile-chip compact-chip">
+                        <input class="profile-availability-option" type="checkbox" value="Sat" />
+                        <span>Sat</span>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="profile-actions">
+                <button type="button" class="secondary-button" id="profile-reset-button">Reset</button>
+                <button type="submit" class="primary-button">Save Profile</button>
+              </div>
+            </form>
+
+            <div id="profile-save-toast" class="profile-save-toast hidden" role="status" aria-live="polite">Profile saved</div>
           </div>
         </section>
       </main>

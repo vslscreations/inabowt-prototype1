@@ -34,6 +34,37 @@ const categories = [
   "Unique Experiences"
 ];
 
+const profileInterestOptions = [
+  "Food & Drinks",
+  "Outdoors",
+  "Games",
+  "Entertainment",
+  "Arts & Culture",
+  "Nightlife",
+  "Fitness",
+  "Unique Experiences"
+];
+
+const profileAvailabilityOptions = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+const defaultUserProfile = {
+  displayName: "",
+  bio: "",
+  photo: "",
+  neighborhood: "",
+  interests: [],
+  availability: [],
+  activityRadius: "10"
+};
+
+function getDefaultUserProfile() {
+  return {
+    ...defaultUserProfile,
+    interests: [...defaultUserProfile.interests],
+    availability: [...defaultUserProfile.availability]
+  };
+}
+
 const discoverViewMeta = {
   regular: "Regular",
   calendar: "Calendar",
@@ -79,6 +110,7 @@ const STORAGE_KEY = "inabowt-demo-state-v1";
 function loadSavedState() {
   try {
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+    const profile = saved.userProfile || {};
     return {
       activeCategory: saved.activeCategory || "All",
       activeType: saved.activeType || "OPEN_OUTING",
@@ -90,7 +122,14 @@ function loadSavedState() {
       calendarMonth: saved.calendarMonth ? new Date(saved.calendarMonth) : new Date(new Date().getFullYear(), new Date().getMonth(), 1),
       createdOutings: Array.isArray(saved.createdOutings) ? saved.createdOutings : [],
       createdByUser: saved.createdByUser || {},
-      persistedOutings: Array.isArray(saved.persistedOutings) ? saved.persistedOutings : []
+      persistedOutings: Array.isArray(saved.persistedOutings) ? saved.persistedOutings : [],
+      userProfile: {
+        ...getDefaultUserProfile(),
+        ...profile,
+        interests: Array.isArray(profile.interests) ? profile.interests : [],
+        availability: Array.isArray(profile.availability) ? profile.availability : [],
+        activityRadius: profile.activityRadius || "10"
+      }
     };
   } catch (error) {
     return {
@@ -104,7 +143,8 @@ function loadSavedState() {
       calendarMonth: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
       createdOutings: [],
       createdByUser: {},
-      persistedOutings: []
+      persistedOutings: [],
+      userProfile: getDefaultUserProfile()
     };
   }
 }
@@ -122,6 +162,7 @@ const state = {
   createdOutings: [],
   createdByUser: {},
   persistedOutings: [],
+  userProfile: getDefaultUserProfile(),
   ...loadSavedState()
 };
 
@@ -151,7 +192,8 @@ function persistSavedState() {
       calendarMonth: state.calendarMonth.toISOString(),
       createdOutings: state.createdOutings,
       createdByUser: state.createdByUser,
-      persistedOutings: outings.filter((outing) => state.createdOutings.includes(outing.id))
+      persistedOutings: outings.filter((outing) => state.createdOutings.includes(outing.id)),
+      userProfile: state.userProfile || getDefaultUserProfile()
     })
   );
 }
@@ -212,12 +254,12 @@ function normalizePublicTags(rawTags) {
     : String(rawTags || "");
 
   const candidates = rawText
-    .split(/[\n,;]+|\s+/)
+    .split(/[\n,;]+/)
     .map((item) => item.trim())
     .filter(Boolean);
 
   const normalized = candidates
-    .map((tag) => String(tag || "").trim().replace(/\s+/g, ""))
+    .map((tag) => String(tag || "").trim())
     .filter(Boolean)
     .filter((tag) => !/\s/.test(tag))
     .filter((tag) => /^[A-Za-z0-9-]+$/.test(tag))
@@ -334,6 +376,11 @@ function getPublicTags(outing) {
   return tags.slice(0, 3).length ? tags.slice(0, 3) : ["Social", "Explore", "Local"];
 }
 
+function getApprovedPublicTags(rawTags) {
+  const tags = normalizePublicTags(rawTags || []);
+  return Array.from(new Set(tags.filter((tag) => tag && !/\s/.test(tag)))).slice(0, 3);
+}
+
 function renderTypeToggle() {
   document.querySelectorAll(".outing-type-option").forEach((button) => {
     const isActive = button.dataset.outingType === state.activeType;
@@ -404,6 +451,7 @@ function toggleNavDropdown(dropdown) {
 
 function renderDiscoverContent() {
   renderDiscoverView();
+  renderNewsFeed();
 
   if (state.discoverView === "regular") {
     renderOutings();
@@ -422,7 +470,7 @@ function renderNewsFeed() {
   const feed = document.getElementById("news-feed");
   if (!feed) return;
 
-  const entries = window.demoNewsFeed || [];
+  const entries = Array.isArray(window.demoNewsFeed) ? window.demoNewsFeed : [];
   if (!entries.length) {
     feed.innerHTML = `
       <div class="placeholder-panel no-results">
@@ -441,26 +489,139 @@ function renderNewsFeed() {
     </div>
     <div class="news-feed-grid">
       ${entries
-        .map(
-          (entry) => `
+        .map((entry) => {
+          const label = entry.label || (entry.kind === "story" ? "Demo success story" : "Demo private community update");
+          return `
             <article class="news-card ${entry.kind === "story" ? "story" : "activity"}">
               <div class="news-card-top">
-                <span class="news-card-tag">${entry.label}</span>
+                <span class="news-card-tag">${label}</span>
               </div>
               <h3>${entry.title}</h3>
               <p>${entry.description}</p>
             </article>
-          `
-        )
+          `;
+        })
         .join("")}
     </div>
   `;
 }
 
+function renderProfileScreen() {
+  const form = document.getElementById("profile-form");
+  if (!form) return;
+
+  const profile = state.userProfile || getDefaultUserProfile();
+  const displayNameInput = document.getElementById("profile-display-name");
+  const bioInput = document.getElementById("profile-bio");
+  const neighborhoodInput = document.getElementById("profile-neighborhood");
+  const radiusInput = document.getElementById("profile-activity-radius");
+  const bioCounter = document.getElementById("profile-bio-counter");
+  const photoPreview = document.getElementById("profile-photo-preview");
+  const photoInput = document.getElementById("profile-photo-input");
+
+  if (displayNameInput) displayNameInput.value = profile.displayName || "";
+  if (bioInput) bioInput.value = profile.bio || "";
+  if (neighborhoodInput) neighborhoodInput.value = profile.neighborhood || "";
+  if (radiusInput) radiusInput.value = profile.activityRadius || "10";
+  if (bioCounter) bioCounter.textContent = `${(profile.bio || "").length}/180`;
+
+  document.querySelectorAll(".profile-interest-option").forEach((checkbox) => {
+    checkbox.checked = Array.isArray(profile.interests) && profile.interests.includes(checkbox.value);
+  });
+
+  document.querySelectorAll(".profile-availability-option").forEach((checkbox) => {
+    checkbox.checked = Array.isArray(profile.availability) && profile.availability.includes(checkbox.value);
+  });
+
+  if (photoPreview) {
+    if (profile.photo) {
+      photoPreview.style.backgroundImage = `url('${profile.photo.replace(/'/g, "\\'")}' )`;
+      photoPreview.classList.add("has-photo");
+    } else {
+      photoPreview.style.backgroundImage = "linear-gradient(135deg, rgba(8, 102, 255, 0.7), rgba(0, 217, 255, 0.35))";
+      photoPreview.classList.remove("has-photo");
+    }
+  }
+
+  if (photoInput) {
+    photoInput.value = "";
+  }
+}
+
+function readProfileFormValues() {
+  const profile = state.userProfile || getDefaultUserProfile();
+
+  const interests = Array.from(document.querySelectorAll(".profile-interest-option:checked")).map((checkbox) => checkbox.value);
+  const availability = Array.from(document.querySelectorAll(".profile-availability-option:checked")).map((checkbox) => checkbox.value);
+
+  return {
+    ...profile,
+    displayName: document.getElementById("profile-display-name")?.value.trim() || "",
+    bio: document.getElementById("profile-bio")?.value.trim() || "",
+    neighborhood: document.getElementById("profile-neighborhood")?.value.trim() || "",
+    interests,
+    availability,
+    activityRadius: document.getElementById("profile-activity-radius")?.value || "10"
+  };
+}
+
+function showProfileToast(message) {
+  const toast = document.getElementById("profile-save-toast");
+  if (!toast) return;
+
+  toast.textContent = message;
+  toast.classList.remove("hidden");
+  clearTimeout(showProfileToast.timeoutId);
+  showProfileToast.timeoutId = setTimeout(() => {
+    toast.classList.add("hidden");
+  }, 1800);
+}
+
+function handleProfilePhotoSelection(event) {
+  const [file] = Array.from(event.target.files || []);
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = () => {
+    state.userProfile = {
+      ...(state.userProfile || getDefaultUserProfile()),
+      photo: typeof reader.result === "string" ? reader.result : ""
+    };
+    renderProfileScreen();
+    persistSavedState();
+  };
+  reader.readAsDataURL(file);
+}
+
+function handleProfilePhotoRemoval() {
+  state.userProfile = {
+    ...(state.userProfile || getDefaultUserProfile()),
+    photo: ""
+  };
+  renderProfileScreen();
+  persistSavedState();
+  showProfileToast("Photo removed");
+}
+
+function handleProfileSave(event) {
+  event.preventDefault();
+  const profile = readProfileFormValues();
+  state.userProfile = {
+    ...getDefaultUserProfile(),
+    ...profile,
+    interests: Array.isArray(profile.interests) ? profile.interests : [],
+    availability: Array.isArray(profile.availability) ? profile.availability : []
+  };
+  persistSavedState();
+  renderProfileScreen();
+  showProfileToast("Profile saved");
+}
+
 function renderCalendarView() {
   const calendarGrid = document.getElementById("calendar-grid");
   const monthLabel = document.getElementById("calendar-month-label");
-  if (!calendarGrid || !monthLabel) return;
+  const calendarShell = document.querySelector(".calendar-shell");
+  if (!calendarGrid || !monthLabel || !calendarShell) return;
 
   const monthDate = new Date(state.calendarMonth.getFullYear(), state.calendarMonth.getMonth(), 1);
   const monthName = new Intl.DateTimeFormat("en-US", { month: "long", year: "numeric" }).format(monthDate);
@@ -491,26 +652,69 @@ function renderCalendarView() {
     ].filter(Boolean).join(" ");
 
     cells.push(`
-      <button type="button" class="${dayClass}" data-calendar-date="${isoDate}" ${eventsForDate.length ? "aria-label=\"${eventsForDate.length} events on ${isoDate}\"" : ""}>
+      <button type="button" class="${dayClass}" data-calendar-date="${isoDate}" ${eventsForDate.length ? `aria-label="${eventsForDate.length} events on ${isoDate}"` : ""}>
         <span class="calendar-day-number">${date.getDate()}</span>
-        ${eventsForDate.length ? `<span class="calendar-day-badge">${Math.min(eventsForDate.length, 3)}</span>` : ""}
-        ${eventsForDate.slice(0, 2).map((event) => `<span class="calendar-day-label">${event.title}</span>`).join("")}
+        ${eventsForDate.length ? `<span class="calendar-day-badge">${eventsForDate.length}</span>` : ""}
       </button>
     `);
   }
 
   calendarGrid.innerHTML = cells.join("");
 
+  const selectedEvents = visibleEvents.filter((outing) => {
+    const outingDate = new Date(parseDateTime(outing.date));
+    return outingDate.toISOString().slice(0, 10) === selectedDate;
+  });
+
+  let popupElement = document.getElementById("calendar-day-popover");
+  if (!popupElement) {
+    popupElement = document.createElement("div");
+    popupElement.id = "calendar-day-popover";
+    popupElement.className = "calendar-day-popover hidden";
+    calendarShell.appendChild(popupElement);
+  }
+
+  if (selectedEvents.length) {
+    popupElement.classList.remove("hidden");
+    popupElement.innerHTML = `
+      <div class="calendar-day-popover-header">
+        <strong>${new Intl.DateTimeFormat("en-US", { weekday: "short", month: "short", day: "numeric" }).format(new Date(`${selectedDate}T12:00:00`))}</strong>
+        <button type="button" class="calendar-day-popover-close" data-calendar-close>Close</button>
+      </div>
+      <div class="calendar-day-popover-list">
+        ${selectedEvents
+          .map((outing) => `
+            <button type="button" class="calendar-day-popover-item" data-calendar-event-id="${outing.id}">
+              <span class="calendar-day-popover-title">${outing.title}</span>
+              <span class="calendar-day-popover-time">${formatTime(outing.date)}</span>
+            </button>
+          `)
+          .join("")}
+      </div>
+    `;
+
+    const closeButton = popupElement.querySelector("[data-calendar-close]");
+    if (closeButton) {
+      closeButton.addEventListener("click", () => {
+        popupElement.classList.add("hidden");
+      });
+    }
+
+    popupElement.querySelectorAll("[data-calendar-event-id]").forEach((button) => {
+      button.addEventListener("click", () => {
+        openEventDetails(button.dataset.calendarEventId);
+      });
+    });
+  } else {
+    popupElement.classList.add("hidden");
+    popupElement.innerHTML = "";
+  }
+
   calendarGrid.querySelectorAll(".calendar-day").forEach((button) => {
     button.addEventListener("click", () => {
-      state.calendarSelectedDate = button.dataset.calendarDate;
+      const nextDate = button.dataset.calendarDate;
+      state.calendarSelectedDate = nextDate;
       renderCalendarView();
-      const dayEvents = visibleEvents.filter((outing) => new Date(parseDateTime(outing.date)).toISOString().slice(0, 10) === state.calendarSelectedDate);
-      if (!dayEvents.length) {
-        return;
-      }
-      const event = dayEvents[0];
-      openEventDetails(event.id);
     });
   });
 }
@@ -864,7 +1068,7 @@ function openEventDetails(id) {
         <div class="detail-item"><span>Capacity</span><strong>${event.capacity || "Flexible"}</strong></div>
       </div>
       <div class="detail-tags">
-        ${publicTags.map((tag) => `<span class="detail-tag">${tag}</span>`).join("")}
+        ${getApprovedPublicTags(event.tags || publicTags).map((tag) => `<span class="detail-tag">${tag}</span>`).join("")}
       </div>
       <div class="detail-actions">
         <button class="primary-button" type="button" id="prototype-interaction-button" data-event-id="${event.id}" ${createdByUser || isJoined || isInterested ? "disabled" : ""}>${actionText}</button>
@@ -902,12 +1106,6 @@ function openEventDetails(id) {
           <strong>${outingTypeMeta[outingType].label}</strong>
         </div>
       </div>
-      ${outingType === "PUBLIC_OUTING" ? `
-        <div class="detail-item creator-block">
-          <span>Hosted by</span>
-          <strong>${event.creatorName}</strong>
-        </div>
-      ` : ""}
       <div class="detail-tags">
         ${(event.tags || []).map((tag) => `<span class="detail-tag">${tag}</span>`).join("")}
       </div>
@@ -1087,9 +1285,11 @@ function validateCreateForm() {
     const tagErrorField = data.outingType === "PUBLIC_OUTING" ? "publicTags" : "privateTags";
 
     if (data[tagFieldName].length !== 3) {
-      errors[tagErrorField] = "Please add exactly three one-word tags.";
+      errors[tagErrorField] = "Please add exactly three unique one-word tags.";
     } else if (new Set(data[tagFieldName].map((tag) => tag.toLowerCase())).size !== 3) {
       errors[tagErrorField] = "Tags must be unique and one word each.";
+    } else if (data[tagFieldName].some((tag) => !tag || /\s/.test(tag))) {
+      errors[tagErrorField] = "Tags must be exactly three nonempty one-word values.";
     }
   }
 
@@ -1238,6 +1438,10 @@ function setActiveScreen(screenName) {
     renderPlansScreen();
     syncPlanSelection();
   }
+
+  if (screenName === "profile") {
+    renderProfileScreen();
+  }
 }
 
 function handleOpenCreatePlaceholder() {
@@ -1319,6 +1523,41 @@ document.getElementById("calendar-next-button").addEventListener("click", () => 
 
 document.getElementById("open-create-placeholder").addEventListener("click", handleOpenCreatePlaceholder);
 
+const profileForm = document.getElementById("profile-form");
+if (profileForm) {
+  profileForm.addEventListener("submit", handleProfileSave);
+}
+
+const profilePhotoInput = document.getElementById("profile-photo-input");
+if (profilePhotoInput) {
+  profilePhotoInput.addEventListener("change", handleProfilePhotoSelection);
+}
+
+const profilePhotoRemoveButton = document.getElementById("profile-photo-remove");
+if (profilePhotoRemoveButton) {
+  profilePhotoRemoveButton.addEventListener("click", handleProfilePhotoRemoval);
+}
+
+const profileBioInput = document.getElementById("profile-bio");
+if (profileBioInput) {
+  profileBioInput.addEventListener("input", (event) => {
+    const counter = document.getElementById("profile-bio-counter");
+    if (counter) {
+      counter.textContent = `${event.target.value.length}/180`;
+    }
+  });
+}
+
+const profileResetButton = document.getElementById("profile-reset-button");
+if (profileResetButton) {
+  profileResetButton.addEventListener("click", () => {
+    state.userProfile = getDefaultUserProfile();
+    persistSavedState();
+    renderProfileScreen();
+    showProfileToast("Profile reset");
+  });
+}
+
 document.querySelectorAll(".create-type-option").forEach((button) => {
   button.addEventListener("click", () => {
     setCreateType(button.dataset.createType);
@@ -1333,7 +1572,20 @@ document.getElementById("create-back-button").addEventListener("click", () => {
 });
 document.getElementById("create-publish-button").addEventListener("click", publishCreatedOuting);
 
-document.addEventListener("click", (event) => {
+document.addEventListener("keydown", (event) => {
+    if (event.key !== "Escape") return;
+
+    const modalOpen = detailsModal && !detailsModal.classList.contains("hidden")
+      || createModal && !createModal.classList.contains("hidden");
+    if (modalOpen) return;
+
+    const anyDropdownOpen = Array.from(document.querySelectorAll("[data-nav-dropdown] .nav-dropdown-menu")).some((menu) => !menu.classList.contains("hidden"));
+    if (!anyDropdownOpen) return;
+
+    closeNavDropdowns();
+  });
+
+  document.addEventListener("click", (event) => {
   const navDropdownTrigger = event.target.closest(".nav-dropdown-trigger");
   if (navDropdownTrigger) {
     const dropdown = navDropdownTrigger.closest("[data-nav-dropdown]");
@@ -1388,6 +1640,7 @@ document.addEventListener("click", (event) => {
 if (searchInput) searchInput.value = state.searchTerm;
 if (categorySelect) categorySelect.value = state.activeCategory;
 
+renderProfileScreen();
 renderTypeToggle();
 renderDiscoverView();
 resetCreateForm();
