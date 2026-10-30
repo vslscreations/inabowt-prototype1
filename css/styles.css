@@ -1402,6 +1402,23 @@ textarea:focus-visible {
   overflow-y: auto;
 }
 
+.notification-detail.mobile-overlay {
+  position: absolute !important;
+  left: 0 !important;
+  right: 0 !important;
+  top: 0 !important;
+  bottom: 0 !important;
+  width: 100% !important;
+  max-width: none !important;
+  height: 100% !important;
+  border-left: 0 !important;
+  border-top: 0 !important;
+  border-radius: 0 !important;
+  z-index: 12 !important;
+  background: rgba(7, 12, 20, 0.98) !important;
+  box-shadow: none !important;
+}
+
 .notification-detail-panel {
   display: grid;
   gap: 1rem;
@@ -1434,6 +1451,35 @@ textarea:focus-visible {
 .notification-thread {
   display: grid;
   gap: 0.75rem;
+}
+
+.notification-compose {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.25rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.notification-message-input {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid rgba(0, 217, 255, 0.18);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.02);
+  color: var(--text);
+  padding: 0.8rem 0.95rem;
+  font: inherit;
+}
+
+.notification-message-input:focus {
+  outline: 2px solid rgba(0, 217, 255, 0.28);
+  outline-offset: 1px;
+}
+
+.notification-send-button {
+  white-space: nowrap;
 }
 
 .notification-thread-item {
@@ -1483,6 +1529,48 @@ textarea:focus-visible {
   .profile-actions .primary-button,
   .profile-actions .secondary-button {
     flex: 1 1 0;
+  }
+}
+
+@media (max-width: 640px) {
+  .notification-center {
+    display: block !important;
+    justify-content: center !important;
+    align-items: flex-end !important;
+    position: fixed !important;
+    inset: 0 !important;
+    z-index: 50 !important;
+  }
+
+  .notification-panel {
+    width: 100% !important;
+    height: min(76vh, 640px) !important;
+    border-left: 0 !important;
+    border-top: 1px solid rgba(0, 217, 255, 0.2) !important;
+    border-radius: 1.25rem 1.25rem 0 0 !important;
+    box-shadow: none !important;
+  }
+
+  .notification-detail {
+    position: absolute !important;
+    left: 0 !important;
+    right: 0 !important;
+    top: 0 !important;
+    bottom: 0 !important;
+    width: 100% !important;
+    max-width: none !important;
+    height: 100% !important;
+    border-left: 0 !important;
+    border-top: 0 !important;
+    border-radius: 0 !important;
+    z-index: 12 !important;
+    background: rgba(7, 12, 20, 0.98) !important;
+    box-shadow: none !important;
+  }
+
+  .notification-detail-panel {
+    min-height: 100%;
+    padding-top: 0.5rem;
   }
 }
 

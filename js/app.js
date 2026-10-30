@@ -476,6 +476,7 @@ function closeNotificationCenter() {
   const detail = document.getElementById("notification-detail");
   if (detail) {
     detail.classList.add("hidden");
+    detail.classList.remove("mobile-overlay");
     detail.innerHTML = "";
   }
 }
@@ -488,8 +489,7 @@ function showNotificationDetail(notification) {
     const conversation = Array.isArray(notification.conversation) && notification.conversation.length
       ? notification.conversation
       : [
-          { author: notification.from || "Inabowt", text: notification.description },
-          { author: "You", text: "I’m on it. See you soon." }
+          { author: notification.from || "Inabowt", text: notification.description }
         ];
 
     detail.innerHTML = `
@@ -510,6 +510,11 @@ function showNotificationDetail(notification) {
             </div>
           `).join("")}
         </div>
+        <form class="notification-compose" data-notification-compose>
+          <label class="sr-only" for="notification-message-input">Write a message</label>
+          <input id="notification-message-input" class="notification-message-input" type="text" maxlength="240" placeholder="Write a message..." />
+          <button type="submit" class="primary-button notification-send-button">Send</button>
+        </form>
       </div>
     `;
   } else {
@@ -530,12 +535,15 @@ function showNotificationDetail(notification) {
     `;
   }
 
+  const isMobileMessage = window.innerWidth <= 640 && notification.type === "message";
   detail.classList.remove("hidden");
+  detail.classList.toggle("mobile-overlay", isMobileMessage);
 
   const closeButton = detail.querySelector("[data-close-notification-detail]");
   if (closeButton) {
     closeButton.addEventListener("click", () => {
       detail.classList.add("hidden");
+      detail.classList.remove("mobile-overlay");
       detail.innerHTML = "";
     });
   }
@@ -545,6 +553,24 @@ function showNotificationDetail(notification) {
     openButton.addEventListener("click", () => {
       const id = openButton.dataset.openNotificationTarget;
       handleNotificationSelection(id);
+    });
+  }
+
+  const composeForm = detail.querySelector("[data-notification-compose]");
+  if (composeForm) {
+    composeForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const input = composeForm.querySelector(".notification-message-input");
+      const text = input ? input.value.trim() : "";
+      if (!text) return;
+
+      if (!Array.isArray(notification.conversation)) {
+        notification.conversation = [];
+      }
+
+      notification.conversation.push({ author: "You", text });
+      persistSavedState();
+      showNotificationDetail(notification);
     });
   }
 }
