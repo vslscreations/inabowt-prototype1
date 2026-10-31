@@ -106,11 +106,39 @@ const outingTypeMeta = {
 };
 
 const STORAGE_KEY = "inabowt-demo-state-v1";
+const DEMO_DATA_VERSION = "november-2026-seed-v1";
+
+function getDefaultSavedState() {
+  return {
+    activeCategory: "All",
+    activeType: "OPEN_OUTING",
+    searchTerm: "",
+    participationStatus: {},
+    invitationStatus: {},
+    activePlansTab: "UPCOMING",
+    discoverView: "regular",
+    calendarMonth: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
+    createdOutings: [],
+    createdByUser: {},
+    persistedOutings: [],
+    notifications: [],
+    userProfile: getDefaultUserProfile()
+  };
+}
 
 function loadSavedState() {
   try {
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
     const profile = saved.userProfile || {};
+
+    if (saved.dataVersion && saved.dataVersion !== DEMO_DATA_VERSION) {
+      return getDefaultSavedState();
+    }
+
+    if (!saved.dataVersion && Object.keys(saved).length > 0) {
+      return getDefaultSavedState();
+    }
+
     return {
       activeCategory: saved.activeCategory || "All",
       activeType: saved.activeType || "OPEN_OUTING",
@@ -133,21 +161,7 @@ function loadSavedState() {
       }
     };
   } catch (error) {
-    return {
-      activeCategory: "All",
-      activeType: "OPEN_OUTING",
-      searchTerm: "",
-      participationStatus: {},
-      invitationStatus: {},
-      activePlansTab: "UPCOMING",
-      discoverView: "regular",
-      calendarMonth: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
-      createdOutings: [],
-      createdByUser: {},
-      persistedOutings: [],
-      notifications: [],
-      userProfile: getDefaultUserProfile()
-    };
+    return getDefaultSavedState();
   }
 }
 
@@ -185,6 +199,7 @@ function persistSavedState() {
   localStorage.setItem(
     STORAGE_KEY,
     JSON.stringify({
+      dataVersion: DEMO_DATA_VERSION,
       activeCategory: state.activeCategory,
       activeType: state.activeType,
       searchTerm: state.searchTerm,
@@ -387,7 +402,11 @@ function renderNotifications() {
 
   const items = [...(state.notifications || [])]
     .filter((notification) => !notification.dismissed)
-    .sort((left, right) => new Date(right.timestamp) - new Date(left.timestamp));
+    .sort((left, right) => {
+      if (left.type === "message" && right.type !== "message") return -1;
+      if (left.type !== "message" && right.type === "message") return 1;
+      return new Date(right.timestamp) - new Date(left.timestamp);
+    });
 
   if (!items.length) {
     list.innerHTML = "";
@@ -1306,6 +1325,7 @@ function renderMapView() {
     }).addTo(map);
 
     const participantCount = outing.capacity ? `${outing.capacity} spots` : "Flexible";
+    const creatorName = outing.creatorName || "Inabowt Community";
     const popupHtml = `
       <div class="map-popup-card">
         <div class="map-popup-badge">${outing.category}</div>
@@ -1315,6 +1335,10 @@ function renderMapView() {
           <span>${formatDate(outing.date)}</span>
           <span>${formatTime(outing.date)}</span>
           <span>${participantCount}</span>
+        </div>
+        <div class="map-popup-meta">
+          <span>Who</span>
+          <strong>${creatorName}</strong>
         </div>
         <button type="button" class="map-popup-button" data-map-id="${outing.id}">View details</button>
       </div>
@@ -1375,6 +1399,7 @@ function renderOutings() {
       ];
 
       if (outingType === "PUBLIC_OUTING") {
+        metaRows.push(`<li><span class="meta-label">Who</span> ${outing.creatorName || "Inabowt Community"}</li>`);
         metaRows.push(`<li><span class="meta-label">Capacity</span> ${outing.capacity || "Flexible"}</li>`);
       }
 
@@ -1424,7 +1449,7 @@ function renderPlansScreen() {
     ...activeCreatedItems
   ].filter((outing, index, arr) => arr.findIndex((candidate) => candidate.id === outing.id) === index);
   const pendingItems = outings.filter((outing) => state.participationStatus[outing.id] === "INTERESTED");
-  const pastItems = demoPastOutings;
+  const pastItems = Array.isArray(window.demoPastOutings) ? window.demoPastOutings : [];
 
   let items = [];
   if (state.activePlansTab === "UPCOMING") {
@@ -1571,6 +1596,7 @@ function openEventDetails(id) {
       : isInterested ? "Interest recorded" : "Express interest";
   const mediaFallback = "linear-gradient(135deg, rgba(8, 102, 255, 0.72), rgba(0, 217, 255, 0.24)), radial-gradient(circle at 20% 20%, rgba(255,255,255,0.3), transparent 18%), linear-gradient(180deg, rgba(4, 10, 18, 0.3), rgba(4, 10, 18, 0.85))";
   const publicTags = getPublicTags(event);
+  const creatorName = event.creatorName || "Inabowt Community";
 
   const publicDetailMarkup = `
     <div class="detail-content">
@@ -1582,9 +1608,10 @@ function openEventDetails(id) {
       <h2 id="details-title" class="detail-title">${event.title}</h2>
       <p class="detail-description">${event.description}</p>
       <div class="detail-grid">
-        <div class="detail-item"><span>Date</span><strong>${formatDate(event.date)}</strong></div>
+        <div class="detail-item"><span>When</span><strong>${formatDate(event.date)}</strong></div>
         <div class="detail-item"><span>Start time</span><strong>${formatTime(event.date)}</strong></div>
-        <div class="detail-item"><span>Location</span><strong>${event.location}</strong></div>
+        <div class="detail-item"><span>Where</span><strong>${event.location}</strong></div>
+        <div class="detail-item"><span>Who</span><strong>${creatorName}</strong></div>
         <div class="detail-item"><span>Capacity</span><strong>${event.capacity || "Flexible"}</strong></div>
       </div>
       <div class="detail-tags">
@@ -1654,14 +1681,12 @@ function openEventDetails(id) {
   if (interactionButton) {
     interactionButton.addEventListener("click", () => {
       const nextStatus = outingType === "OPEN_OUTING" ? "JOINED" : "INTERESTED";
+
       if (state.participationStatus[event.id] === nextStatus) {
         return;
       }
 
       if (outingType === "PUBLIC_OUTING") {
-        if (state.participationStatus[event.id] === "JOINED") {
-          return;
-        }
         state.participationStatus[event.id] = "INTERESTED";
       } else {
         state.participationStatus[event.id] = "JOINED";
@@ -1670,6 +1695,8 @@ function openEventDetails(id) {
 
       persistSavedState();
       renderPlansScreen();
+      renderDiscoverContent();
+
       const activityTitle = outingType === "OPEN_OUTING"
         ? "You joined an outing"
         : "You expressed interest in an outing";
@@ -1691,6 +1718,7 @@ function openEventDetails(id) {
         outingId: event.id,
         destination: { screen: "plans", outingId: event.id }
       });
+
       interactionButton.textContent = outingType === "OPEN_OUTING" ? "Joined" : "Interest recorded";
       interactionButton.disabled = true;
       interactionButton.style.opacity = "0.8";
