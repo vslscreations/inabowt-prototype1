@@ -122,7 +122,10 @@ function getDefaultSavedState() {
     createdByUser: {},
     persistedOutings: [],
     notifications: [],
-    userProfile: getDefaultUserProfile()
+    userProfile: getDefaultUserProfile(),
+    tutorialCompleted: false,
+    tutorialStep: 0,
+    tutorialIntroSeen: false
   };
 }
 
@@ -158,7 +161,10 @@ function loadSavedState() {
         interests: Array.isArray(profile.interests) ? profile.interests : [],
         availability: Array.isArray(profile.availability) ? profile.availability : [],
         activityRadius: profile.activityRadius || "10"
-      }
+      },
+      tutorialCompleted: Boolean(saved.tutorialCompleted),
+      tutorialStep: Number.isFinite(saved.tutorialStep) ? saved.tutorialStep : 0,
+      tutorialIntroSeen: Boolean(saved.tutorialIntroSeen)
     };
   } catch (error) {
     return getDefaultSavedState();
@@ -180,6 +186,9 @@ const state = {
   persistedOutings: [],
   notifications: [],
   userProfile: getDefaultUserProfile(),
+  tutorialCompleted: false,
+  tutorialStep: 0,
+  tutorialIntroSeen: false,
   ...loadSavedState()
 };
 
@@ -212,7 +221,10 @@ function persistSavedState() {
       createdByUser: state.createdByUser,
       persistedOutings: outings.filter((outing) => state.createdOutings.includes(outing.id)),
       notifications: Array.isArray(state.notifications) ? state.notifications : [],
-      userProfile: state.userProfile || getDefaultUserProfile()
+      userProfile: state.userProfile || getDefaultUserProfile(),
+      tutorialCompleted: Boolean(state.tutorialCompleted),
+      tutorialStep: Number.isFinite(state.tutorialStep) ? state.tutorialStep : 0,
+      tutorialIntroSeen: Boolean(state.tutorialIntroSeen)
     })
   );
 }
@@ -901,6 +913,36 @@ function getVisibleOutings(includePast = false) {
   );
 }
 
+function getConfirmedParticipantCount(outing) {
+  const outingId = outing?.id;
+  const isHost = Boolean(outing?.createdByUser || state.createdOutings.includes(outingId));
+  let confirmed = isHost ? 1 : 0;
+
+  if (state.participationStatus[outingId] === "JOINED") {
+    confirmed += 1;
+  }
+
+  if (Array.isArray(outing?.acceptedParticipants) && outing.acceptedParticipants.length) {
+    confirmed += outing.acceptedParticipants.length;
+  }
+
+  return Math.max(confirmed, 1);
+}
+
+function getGroupMinimumStatus(outing) {
+  const confirmedParticipants = getConfirmedParticipantCount(outing);
+  const minimumRequired = 3;
+  const remainingNeeded = Math.max(0, minimumRequired - confirmedParticipants);
+  const isMinimumReached = confirmedParticipants >= minimumRequired;
+
+  return {
+    confirmedParticipants,
+    minimumRequired,
+    remainingNeeded,
+    isMinimumReached
+  };
+}
+
 function getTypeBadgeClasses(type) {
   if (type === "OPEN_OUTING") return "type-badge open";
   if (type === "PRIVATE_OUTING") return "type-badge private";
@@ -949,10 +991,23 @@ function renderDiscoverView() {
 }
 
 function syncPlanSelection() {
+  const labelMap = {
+    UPCOMING: "Upcoming",
+    PENDING: "Pending",
+    INVITATIONS: "Invitations",
+    PAST: "Past"
+  };
+
+  const triggerLabel = document.getElementById("plans-nav-trigger-label");
+  if (triggerLabel) {
+    triggerLabel.textContent = labelMap[state.activePlansTab] || "Upcoming";
+  }
+
   document.querySelectorAll(".plan-tab").forEach((button) => {
     const isActive = button.dataset.planTab === state.activePlansTab;
     button.classList.toggle("is-active", isActive);
     button.setAttribute("aria-selected", String(isActive));
+    button.setAttribute("aria-checked", String(isActive));
   });
 
   document.querySelectorAll(".nav-dropdown-item").forEach((button) => {
@@ -1042,6 +1097,321 @@ function renderNewsFeed() {
   `;
 }
 
+const tutorialSteps = [
+  {
+    eyebrow: "CARD 1 — OPENING CINEMATIC",
+    headline: "WE'VE NEVER BEEN MORE CONNECTED. SO WHY IS IT STILL SO HARD TO MEET PEOPLE?",
+    body: "Technology has changed how we communicate. But finding people to actually spend time with is still harder than it should be.",
+    primaryLabel: "NEXT"
+  },
+  {
+    eyebrow: "CARD 2 — INTRODUCING THE PLATFORM",
+    headline: "INTRODUCING INABOWT.",
+    body: "THE FUTURE OF SOCIAL CONNECTION.\n\nA new way to discover experiences, meet people with shared interests, and turn everyday plans into opportunities for real connection.",
+    primaryLabel: "NEXT"
+  },
+  {
+    eyebrow: "CARD 3 — THE BIG DIFFERENTIATOR",
+    headline: "LESS AWKWARD INTRODUCTIONS. LESS CHASING CONVERSATIONS. MORE ACTUALLY GETTING TOGETHER.",
+    body: "Inabowt is designed to do much of the connecting for you. Instead of relying on endless swiping or messaging strangers, you start with an experience you're interested in. The platform helps bring the right people together around it.",
+    primaryLabel: "NEXT"
+  },
+  {
+    eyebrow: "CARD 4 — A DIFFERENT KIND OF SOCIAL PLATFORM",
+    headline: "NOT A DATING APP. NOT JUST AN EVENT APP.",
+    body: "You don't need to be outgoing, know how to approach strangers, or already have a big social circle.\n\nFind something you want to do. Show interest. Let Inabowt help turn that shared interest into an opportunity to connect.",
+    primaryLabel: "NEXT"
+  },
+  {
+    eyebrow: "CARD 5 — THE INVITATION",
+    headline: "YOU BRING THE INTEREST. WE HELP BRING THE PEOPLE.",
+    body: "Whether you want to make friends, expand your circle, explore your city, or simply get out more, Inabowt gives you another way to make it happen.",
+    primaryLabel: "LET'S GET STARTED"
+  },
+  {
+    eyebrow: "CARD 6 — DISCOVER",
+    headline: "DISCOVER",
+    body: "This is where you find local outings. Outings are created by people looking for others with similar interests to go out with. You can also explore outings on a calendar or map.",
+    instruction: "Browse the feed, try the filters, and explore Calendar or Map.",
+    primaryLabel: "NEXT",
+    target: ".search-field, .category-select, .discover-view-option[data-discover-view='calendar'], .discover-view-option[data-discover-view='map'], .outing-feed",
+    screen: "discover",
+    action: () => {
+      state.activeType = "OPEN_OUTING";
+      state.discoverView = "regular";
+      setActiveScreen("discover");
+      renderDiscoverContent();
+    }
+  },
+  {
+    eyebrow: "CARD 7 — OPEN OUTINGS",
+    headline: "OPEN OUTINGS",
+    body: "These outings are open to everyone. Find something you like and join directly. Every outing is designed for a group of at least three people.",
+    instruction: "Open a card and try Join to see how the app updates your plans.",
+    primaryLabel: "NEXT",
+    target: ".outing-type-option[data-outing-type='OPEN_OUTING'], .outing-card",
+    screen: "discover",
+    action: () => {
+      state.activeType = "OPEN_OUTING";
+      setActiveScreen("discover");
+      renderDiscoverContent();
+    }
+  },
+  {
+    eyebrow: "CARD 8 — PUBLIC OUTINGS",
+    headline: "PUBLIC OUTINGS",
+    body: "See an outing you like? Express interest. The host reviews interested people and chooses who to invite. Once invited, accept to confirm your place.",
+    instruction: "Try the Public Outings tab and look for the interest flow on an example outing.",
+    primaryLabel: "NEXT",
+    target: ".outing-type-option[data-outing-type='PUBLIC_OUTING'], .outing-card",
+    screen: "discover",
+    action: () => {
+      state.activeType = "PUBLIC_OUTING";
+      setActiveScreen("discover");
+      renderDiscoverContent();
+    }
+  },
+  {
+    eyebrow: "CARD 9 — PRIVATE OUTINGS",
+    headline: "PRIVATE OUTINGS",
+    body: "Looking for a particular kind of group? Hosts can set interests, availability, and other preferences to find people who fit the outing. Potential matches can then be reviewed and invited.",
+    instruction: "Open the create flow and review the matching criteria for a private outing.",
+    primaryLabel: "NEXT",
+    target: "[data-create-nav='true'], .create-type-option",
+    screen: "discover",
+    action: () => {
+      setActiveScreen("discover");
+      handleOpenCreatePlaceholder();
+      setCreateType("PRIVATE_OUTING");
+    }
+  },
+  {
+    eyebrow: "CARD 10 — CREATE AN OUTING",
+    headline: "CREATE AN OUTING",
+    body: "Have something you want to do? Create your own outing. Choose whether it's Open, Public, or Private, add the details, and give other people an opportunity to join you.",
+    instruction: "Open Create Outing and check the three outing types and preview details.",
+    primaryLabel: "NEXT",
+    target: "[data-create-nav='true'], #create-modal, .create-type-option",
+    screen: "discover",
+    action: () => {
+      setActiveScreen("discover");
+      handleOpenCreatePlaceholder();
+      setCreateType("OPEN_OUTING");
+    }
+  },
+  {
+    eyebrow: "CARD 11 — MY PLANS",
+    headline: "MY PLANS",
+    body: "Everything you're involved in lives here. See outings you've joined, requests you're waiting on, invitations you've received, and outings you've organized.",
+    instruction: "Switch between Upcoming, Pending, Invitations, and Past to see how plans move through the app.",
+    primaryLabel: "NEXT",
+    target: "[data-screen='plans'], .plan-tab",
+    screen: "plans",
+    action: () => {
+      state.activePlansTab = "UPCOMING";
+      setActiveScreen("plans");
+      renderPlansScreen();
+    }
+  },
+  {
+    eyebrow: "CARD 12 — YOUR PROFILE",
+    headline: "YOUR PROFILE",
+    body: "Tell Inabowt what you're interested in, when you're available, and where you generally like to go. This information helps the platform recommend relevant outings and potential connections.",
+    instruction: "Review your interests, availability, neighborhood, and activity radius.",
+    primaryLabel: "NEXT",
+    target: "[data-screen='profile'], .profile-form, .profile-chip-grid",
+    screen: "profile",
+    action: () => {
+      setActiveScreen("profile");
+      renderProfileScreen();
+    }
+  },
+  {
+    eyebrow: "CARD 13 — NOTIFICATIONS",
+    headline: "NOTIFICATIONS",
+    body: "Stay up to date in one place. See invitations, activity updates, and recommended outings without having to constantly search for what's happening.",
+    instruction: "Open the notification center and review the unified feed and destination actions.",
+    primaryLabel: "NEXT",
+    target: "#notification-button, #notification-center",
+    screen: "discover",
+    action: () => {
+      setActiveScreen("discover");
+      ensureNotificationReady();
+      openNotificationCenter();
+    }
+  },
+  {
+    eyebrow: "CARD 14 — THE BIGGER PICTURE",
+    headline: "MORE THAN JUST FINDING SOMETHING TO DO.",
+    body: "Inabowt is designed to make meeting people easier. By bringing shared interests and activities together, the platform can take some of the work out of making connections and help turn plans into real-world experiences.",
+    instruction: "Follow the flow from Discover to joining, invitations, and My Plans.",
+    primaryLabel: "NEXT",
+    target: ".outing-feed, #plans-content, #notification-button",
+    screen: "discover",
+    action: () => {
+      setActiveScreen("discover");
+      renderDiscoverContent();
+    }
+  },
+  {
+    eyebrow: "CARD 15 — FINAL INVITATION",
+    headline: "YOUR PEOPLE ARE OUT THERE.",
+    body: "Discover something new. Meet people with shared interests. Experience more of life together.\n\nINABOWT — THE FUTURE OF SOCIAL CONNECTION.",
+    instruction: "You're ready. Head back into the app and start exploring.",
+    primaryLabel: "FIND YOUR PEOPLE"
+  }
+];
+
+function clearTutorialFocus() {
+  document.querySelectorAll(".tutorial-focus").forEach((node) => {
+    node.classList.remove("tutorial-focus");
+  });
+}
+
+function showTutorialIntroSplash() {
+  const root = document.getElementById("tutorial-root");
+  if (!root) return;
+
+  clearTutorialFocus();
+  root.classList.remove("hidden");
+  root.classList.remove("tutorial-root--guided");
+  root.innerHTML = `
+    <div class="tutorial-intro-splash">
+      <div class="tutorial-intro-glow"></div>
+      <img class="tutorial-logo-hero" src="assets/images/logo.png" alt="Inabowt logo" />
+    </div>
+  `;
+
+  if (window.__tutorialSplashTimer) {
+    clearTimeout(window.__tutorialSplashTimer);
+  }
+
+  window.__tutorialSplashTimer = window.setTimeout(() => {
+    const currentRoot = document.getElementById("tutorial-root");
+    if (!currentRoot) return;
+
+    state.tutorialIntroSeen = true;
+    state.tutorialStep = 0;
+    persistSavedState();
+    renderTutorial();
+  }, 1800);
+}
+
+function renderTutorial() {
+  const root = document.getElementById("tutorial-root");
+  if (!root) return;
+
+  if (state.tutorialCompleted) {
+    closeNotificationCenter();
+    root.classList.add("hidden");
+    root.innerHTML = "";
+    clearTutorialFocus();
+    return;
+  }
+
+  if (!state.tutorialIntroSeen) {
+    showTutorialIntroSplash();
+    return;
+  }
+
+  const stepIndex = Math.max(0, Math.min(state.tutorialStep, tutorialSteps.length - 1));
+  const activeStep = tutorialSteps[stepIndex];
+  const isGuidedStep = stepIndex >= 5;
+
+  clearTutorialFocus();
+
+  if (activeStep?.target) {
+    const targets = Array.from(document.querySelectorAll(activeStep.target));
+    targets.forEach((target) => target.classList.add("tutorial-focus"));
+    const firstTarget = targets[0];
+    if (firstTarget) {
+      firstTarget.scrollIntoView({ behavior: "smooth", block: "center", inline: "nearest" });
+    }
+  }
+
+  if (activeStep?.action) {
+    activeStep.action();
+  }
+
+  if (activeStep?.screen) {
+    setActiveScreen(activeStep.screen);
+  }
+
+  root.classList.remove("hidden");
+  root.classList.toggle("tutorial-root--guided", isGuidedStep);
+  root.innerHTML = `
+    <div class="tutorial-surface ${isGuidedStep ? "tutorial-surface--guided" : "tutorial-surface--cinematic"}">
+      <div class="tutorial-card">
+        <p class="tutorial-eyebrow">${activeStep.eyebrow}</p>
+        <h2>${activeStep.headline}</h2>
+        <p>${(activeStep.body || "").replace(/\n\n/g, "</p><p>")}</p>
+        <div class="tutorial-actions">
+          <div class="tutorial-progress">${tutorialSteps.map((_, index) => `<span class="${index === stepIndex ? "is-active" : ""}"></span>`).join("")}</div>
+          <div class="tutorial-actions-row">
+            <button type="button" class="secondary-button compact" data-tutorial-action="skip">Skip Tutorial</button>
+            <button type="button" class="secondary-button compact" data-tutorial-action="back" ${stepIndex === 0 ? "disabled" : ""}>Back</button>
+            <button type="button" class="primary-button compact" data-tutorial-action="next">${activeStep.primaryLabel}</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  const nextButton = root.querySelector("[data-tutorial-action='next']");
+  const backButton = root.querySelector("[data-tutorial-action='back']");
+  const skipButton = root.querySelector("[data-tutorial-action='skip']");
+
+  nextButton?.addEventListener("click", () => {
+    if (stepIndex === 9) {
+      closeCreateModal();
+    }
+
+    if (stepIndex >= tutorialSteps.length - 1) {
+      closeNotificationCenter();
+      state.tutorialCompleted = true;
+      state.tutorialStep = 0;
+      persistSavedState();
+      renderTutorial();
+      return;
+    }
+
+    state.tutorialStep = stepIndex + 1;
+    persistSavedState();
+    renderTutorial();
+  });
+
+  backButton?.addEventListener("click", () => {
+    if (stepIndex === 0) return;
+    state.tutorialStep = stepIndex - 1;
+    persistSavedState();
+    renderTutorial();
+  });
+
+  skipButton?.addEventListener("click", () => {
+    closeCreateModal();
+    closeNotificationCenter();
+    state.tutorialCompleted = true;
+    state.tutorialStep = 0;
+    persistSavedState();
+    renderTutorial();
+  });
+}
+
+function initTutorial() {
+  if (!state.tutorialCompleted) {
+    if (!Number.isFinite(state.tutorialStep) || state.tutorialStep < 0) {
+      state.tutorialStep = 0;
+    }
+
+    if (!state.tutorialIntroSeen) {
+      showTutorialIntroSplash();
+      return;
+    }
+
+    renderTutorial();
+  }
+}
+
 function renderProfileScreen() {
   const form = document.getElementById("profile-form");
   if (!form) return;
@@ -1074,7 +1444,7 @@ function renderProfileScreen() {
       photoPreview.style.backgroundImage = `url('${profile.photo.replace(/'/g, "\\'")}' )`;
       photoPreview.classList.add("has-photo");
     } else {
-      photoPreview.style.backgroundImage = "linear-gradient(135deg, rgba(8, 102, 255, 0.7), rgba(0, 217, 255, 0.35))";
+      photoPreview.style.backgroundImage = "linear-gradient(135deg, rgba(16, 20, 28, 0.9), rgba(46, 52, 60, 0.9))";
       photoPreview.classList.remove("has-photo");
     }
   }
@@ -1392,6 +1762,7 @@ function renderOutings() {
         </div>
       `;
 
+      const groupStatus = getGroupMinimumStatus(outing);
       const metaRows = [
         `<li><span class="meta-label">When</span> ${formatDate(outing.date)}</li>`,
         `<li><span class="meta-label">Start</span> ${formatTime(outing.date)}</li>`,
@@ -1400,7 +1771,7 @@ function renderOutings() {
 
       if (outingType === "PUBLIC_OUTING") {
         metaRows.push(`<li><span class="meta-label">Who</span> ${outing.creatorName || "Inabowt Community"}</li>`);
-        metaRows.push(`<li><span class="meta-label">Capacity</span> ${outing.capacity || "Flexible"}</li>`);
+        metaRows.push(`<li><span class="meta-label">Group</span> ${groupStatus.confirmedParticipants}/${groupStatus.minimumRequired} confirmed</li>`);
       }
 
       return `
@@ -1418,6 +1789,7 @@ function renderOutings() {
               <span class="status-pill">${outingTypeMeta[outingType].label}</span>
               <button class="card-link" type="button">View details</button>
             </div>
+            <p class="minimum-group-note">${getGroupMinimumStatus(outing).isMinimumReached ? "Minimum group size reached." : `${getGroupMinimumStatus(outing).remainingNeeded} more participant${getGroupMinimumStatus(outing).remainingNeeded === 1 ? "" : "s"} needed to reach the minimum group size.`}</p>
           </div>
         </article>
       `;
@@ -1589,6 +1961,7 @@ function openEventDetails(id) {
   const activeStatus = state.participationStatus[id];
   const isJoined = outingType === "OPEN_OUTING" && activeStatus === "JOINED";
   const isInterested = outingType === "PUBLIC_OUTING" && activeStatus === "INTERESTED";
+  const minimumStatus = getGroupMinimumStatus(event);
   const actionText = createdByUser
     ? "Created by you"
     : outingType === "OPEN_OUTING"
@@ -1612,8 +1985,9 @@ function openEventDetails(id) {
         <div class="detail-item"><span>Start time</span><strong>${formatTime(event.date)}</strong></div>
         <div class="detail-item"><span>Where</span><strong>${event.location}</strong></div>
         <div class="detail-item"><span>Who</span><strong>${creatorName}</strong></div>
-        <div class="detail-item"><span>Capacity</span><strong>${event.capacity || "Flexible"}</strong></div>
+        <div class="detail-item"><span>Group</span><strong>${minimumStatus.confirmedParticipants}/${minimumStatus.minimumRequired} confirmed</strong></div>
       </div>
+      <p class="minimum-group-detail">${minimumStatus.isMinimumReached ? "Minimum group size reached." : `${minimumStatus.remainingNeeded} more participant${minimumStatus.remainingNeeded === 1 ? "" : "s"} needed to reach the minimum group size.`}</p>
       <div class="detail-tags">
         ${getApprovedPublicTags(event.tags || publicTags).map((tag) => `<span class="detail-tag">${tag}</span>`).join("")}
       </div>
@@ -1836,10 +2210,14 @@ function validateCreateForm() {
   ];
 
   requiredFields.forEach(([field, value, message]) => {
-    if (!value || (field === "capacity" && Number(value) < 2)) {
-      errors[field] = message;
+    if (!value || (field === "capacity" && Number(value) < 3)) {
+      errors[field] = "Every Inabowt outing needs at least three total participants.";
     }
   });
+
+  if (data.capacity && Number(data.capacity) < 3) {
+    errors.capacity = "Every Inabowt outing needs at least three total participants.";
+  }
 
   if (data.capacity && Number(data.capacity) > 200) {
     errors.capacity = "Capacity should be 200 or fewer.";
@@ -1957,7 +2335,7 @@ function publishCreatedOuting() {
     curated: false,
     creatorName: "You",
     attendance: "0 interested",
-    capacity: Number(values.capacity || 12),
+    capacity: Math.max(3, Number(values.capacity || 12)),
     locationType: "custom",
     coordinates: getLocationCoords({ location: values.location.trim(), address: values.location.trim() }),
     createdByUser: true,
@@ -2210,6 +2588,16 @@ document.querySelectorAll(".nav-drawer-link").forEach((button) => {
       return;
     }
 
+    if (button.dataset.tutorial === "true") {
+      state.tutorialCompleted = false;
+      state.tutorialIntroSeen = false;
+      state.tutorialStep = 0;
+      persistSavedState();
+      closeNavDrawer();
+      renderTutorial();
+      return;
+    }
+
     if (button.dataset.localFeed === "true") {
       state.discoverView = "regular";
       persistSavedState();
@@ -2357,3 +2745,4 @@ renderPlansScreen();
 ensureNotificationReady();
 closeNotificationCenter();
 setActiveScreen("discover");
+initTutorial();

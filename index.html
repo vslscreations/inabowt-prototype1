@@ -11,7 +11,7 @@
     <link rel="icon" type="image/png" href="assets/images/apple-touch-icon.png" />
     <link rel="apple-touch-icon" href="assets/images/apple-touch-icon.png" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
-    <link rel="stylesheet" href="css/styles.css?v=20261101-november-seed" />
+    <link rel="stylesheet" href="css/styles.css?v=20261031-tutorial-polish-6" />
   </head>
   <body>
     <div class="app-shell">
@@ -51,6 +51,7 @@
             <button class="nav-drawer-link" data-screen="discover" data-local-feed="true" type="button">Local Feed</button>
             <button class="nav-drawer-link" data-screen="plans" type="button">My Plans</button>
             <button class="nav-drawer-link" data-create-nav="true" type="button">Create an Outing</button>
+            <button class="nav-drawer-link" data-tutorial="true" type="button">Tutorial</button>
             <button class="nav-drawer-link" data-screen="profile" type="button">Profile</button>
           </nav>
         </aside>
@@ -186,19 +187,25 @@
               <p>Track confirmed outings, event interest, and the invitations waiting for your response.</p>
             </div>
 
-            <div class="plans-tabs" role="tablist" aria-label="My plans sections">
-              <button type="button" class="plan-tab is-active" data-plan-tab="UPCOMING" role="tab" aria-selected="true">
-                Upcoming
+            <div class="plans-tabs nav-dropdown" data-nav-dropdown="plans-nav" role="navigation" aria-label="My plans sections">
+              <button type="button" class="nav-dropdown-trigger plans-nav-trigger" aria-expanded="false" aria-controls="plans-nav-menu">
+                <span id="plans-nav-trigger-label">Upcoming</span>
+                <span aria-hidden="true">▾</span>
               </button>
-              <button type="button" class="plan-tab" data-plan-tab="PENDING" role="tab" aria-selected="false">
-                Pending
-              </button>
-              <button type="button" class="plan-tab" data-plan-tab="INVITATIONS" role="tab" aria-selected="false">
-                Invitations
-              </button>
-              <button type="button" class="plan-tab" data-plan-tab="PAST" role="tab" aria-selected="false">
-                Past
-              </button>
+              <div id="plans-nav-menu" class="nav-dropdown-menu hidden" role="menu" aria-label="Plan categories">
+                <button type="button" class="plan-tab nav-dropdown-item is-selected" data-plan-tab="UPCOMING" data-plan-section="UPCOMING" role="menuitemradio" aria-checked="true">
+                  Upcoming
+                </button>
+                <button type="button" class="plan-tab nav-dropdown-item" data-plan-tab="PENDING" data-plan-section="PENDING" role="menuitemradio" aria-checked="false">
+                  Pending
+                </button>
+                <button type="button" class="plan-tab nav-dropdown-item" data-plan-tab="INVITATIONS" data-plan-section="INVITATIONS" role="menuitemradio" aria-checked="false">
+                  Invitations
+                </button>
+                <button type="button" class="plan-tab nav-dropdown-item" data-plan-tab="PAST" data-plan-section="PAST" role="menuitemradio" aria-checked="false">
+                  Past
+                </button>
+              </div>
             </div>
 
             <div id="plans-content" class="plans-content" aria-live="polite"></div>
@@ -495,9 +502,10 @@
     </div>
 
     <div id="creation-toast" class="creation-toast hidden" role="status" aria-live="polite"></div>
+    <div id="tutorial-root" class="tutorial-root hidden" aria-live="polite"></div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-    <script src="js/data.js?v=20261101-november-seed"></script>
-    <script src="js/app.js?v=20261101-november-seed"></script>
+    <script src="js/data.js?v=20261031-tutorial-polish-6"></script>
+    <script src="js/app.js?v=20261031-tutorial-polish-6"></script>
   </body>
 </html>
