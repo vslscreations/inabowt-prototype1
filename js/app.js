@@ -643,20 +643,18 @@ function showNotificationDetail(notification) {
         ];
     const outingHeading = notification.outingTitle || "Your outing";
     const outingSchedule = notification.outingDate || "Event details";
+    const headingText = notification.title || outingHeading;
 
     detail.innerHTML = `
       <div class="notification-detail-panel">
         <div class="notification-detail-header">
           <div class="notification-avatar message">${notification.avatar || "A"}</div>
-          <div>
+          <div class="notification-detail-heading">
             <span class="notification-type">Group chat</span>
-            <h3>${notification.title || outingHeading}</h3>
+            <h3>${headingText}</h3>
+            <p class="notification-detail-subtitle">${outingSchedule}</p>
           </div>
           <button type="button" class="notification-close-detail" data-close-notification-detail>×</button>
-        </div>
-        <div class="notification-outing-summary">
-          <h4>${outingHeading}</h4>
-          <p>${outingSchedule}</p>
         </div>
         <div class="notification-thread">
           ${conversation.map((entry) => `
