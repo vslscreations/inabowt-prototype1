@@ -47,6 +47,99 @@ const profileInterestOptions = [
 
 const profileAvailabilityOptions = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
+function createDummyProfilePhoto({ name, background, skin, shirt, hair }) {
+  const initials = String(name || "P")
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0].toUpperCase())
+    .join("") || "P";
+
+  const svg = `
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="${name} portrait">
+      <defs>
+        <linearGradient id="bg-${initials}" x1="0" x2="1" y1="0" y2="1">
+          <stop offset="0%" stop-color="${background[0]}"/>
+          <stop offset="100%" stop-color="${background[1]}"/>
+        </linearGradient>
+      </defs>
+      <rect width="128" height="128" rx="32" fill="url(#bg-${initials})"/>
+      <circle cx="64" cy="46" r="22" fill="${skin}"/>
+      <path d="M43 43c3-19 39-23 47-1 0 0-4-14-23-14-18 0-24 15-24 15Z" fill="${hair}"/>
+      <path d="M31 106c4-18 18-27 33-27s29 9 33 27" fill="${shirt}"/>
+      <circle cx="54" cy="46" r="2.2" fill="#1b1b1b"/>
+      <circle cx="74" cy="46" r="2.2" fill="#1b1b1b"/>
+      <path d="M55 58c4 4 14 4 18 0" stroke="#8a4d35" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+      <text x="64" y="112" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" fill="rgba(255,255,255,0.92)">${initials}</text>
+    </svg>
+  `;
+
+  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
+}
+
+const demoCreateInviteProfiles = [
+  {
+    id: "nina",
+    name: "Nina",
+    neighborhood: "Downtown Arts District",
+    interests: ["Food & Drinks", "Arts & Culture"],
+    availability: ["Wed", "Thu", "Fri"],
+    activityRadius: 12,
+    status: "available",
+    photo: createDummyProfilePhoto({ name: "Nina", background: ["#112c4d", "#0a1827"], skin: "#f2c4a3", shirt: "#1ed0c5", hair: "#2a1713" })
+  },
+  {
+    id: "omar",
+    name: "Omar",
+    neighborhood: "Summerlin",
+    interests: ["Outdoors", "Fitness"],
+    availability: ["Thu", "Fri"],
+    activityRadius: 8,
+    status: "available",
+    photo: createDummyProfilePhoto({ name: "Omar", background: ["#1d2d5f", "#0c1228"], skin: "#b77a4d", shirt: "#2fc0ff", hair: "#332318" })
+  },
+  {
+    id: "lena",
+    name: "Lena",
+    neighborhood: "Arts District",
+    interests: ["Food & Drinks", "Games"],
+    availability: ["Fri", "Sat"],
+    activityRadius: 10,
+    status: "available",
+    photo: createDummyProfilePhoto({ name: "Lena", background: ["#632b60", "#20162d"], skin: "#e5b694", shirt: "#ff6bab", hair: "#44281f" })
+  },
+  {
+    id: "marcus",
+    name: "Marcus",
+    neighborhood: "Downtown Las Vegas",
+    interests: ["Entertainment", "Games"],
+    availability: ["Tue", "Wed"],
+    activityRadius: 6,
+    status: "available",
+    photo: createDummyProfilePhoto({ name: "Marcus", background: ["#244833", "#0d1713"], skin: "#8f5f40", shirt: "#52d18b", hair: "#17130f" })
+  },
+  {
+    id: "selena",
+    name: "Selena",
+    neighborhood: "The District at Green Valley",
+    interests: ["Nightlife", "Entertainment"],
+    availability: ["Thu", "Fri"],
+    activityRadius: 18,
+    status: "available",
+    photo: createDummyProfilePhoto({ name: "Selena", background: ["#5f2547", "#1d1220"], skin: "#ddb08e", shirt: "#f4b740", hair: "#2f1c1e" })
+  },
+  {
+    id: "niko",
+    name: "Niko",
+    neighborhood: "Downtown Arts District",
+    interests: ["Outdoors", "Unique Experiences"],
+    availability: ["Tue"],
+    activityRadius: 5,
+    status: "unavailable",
+    photo: createDummyProfilePhoto({ name: "Niko", background: ["#2f3f6b", "#111827"], skin: "#c88b5d", shirt: "#7b9cff", hair: "#1b1b1b" })
+  }
+];
+
 const defaultUserProfile = {
   displayName: "",
   bio: "",
@@ -125,7 +218,13 @@ function getDefaultSavedState() {
     userProfile: getDefaultUserProfile(),
     tutorialCompleted: false,
     tutorialStep: 0,
-    tutorialIntroSeen: false
+    tutorialIntroSeen: false,
+    createTutorialCompleted: false,
+    createTutorialStep: 0,
+    createTutorialSeen: false,
+    pendingInviteOutingId: null,
+    pendingInviteCandidates: [],
+    pendingInviteSelection: []
   };
 }
 
@@ -164,7 +263,13 @@ function loadSavedState() {
       },
       tutorialCompleted: Boolean(saved.tutorialCompleted),
       tutorialStep: Number.isFinite(saved.tutorialStep) ? saved.tutorialStep : 0,
-      tutorialIntroSeen: Boolean(saved.tutorialIntroSeen)
+      tutorialIntroSeen: Boolean(saved.tutorialIntroSeen),
+      createTutorialCompleted: Boolean(saved.createTutorialCompleted),
+      createTutorialStep: Number.isFinite(saved.createTutorialStep) ? saved.createTutorialStep : 0,
+      createTutorialSeen: Boolean(saved.createTutorialSeen),
+      pendingInviteOutingId: saved.pendingInviteOutingId || null,
+      pendingInviteCandidates: Array.isArray(saved.pendingInviteCandidates) ? saved.pendingInviteCandidates : [],
+      pendingInviteSelection: Array.isArray(saved.pendingInviteSelection) ? saved.pendingInviteSelection : []
     };
   } catch (error) {
     return getDefaultSavedState();
@@ -189,6 +294,12 @@ const state = {
   tutorialCompleted: false,
   tutorialStep: 0,
   tutorialIntroSeen: false,
+  createTutorialCompleted: false,
+  createTutorialStep: 0,
+  createTutorialSeen: false,
+  pendingInviteOutingId: null,
+  pendingInviteCandidates: [],
+  pendingInviteSelection: [],
   ...loadSavedState()
 };
 
@@ -224,7 +335,13 @@ function persistSavedState() {
       userProfile: state.userProfile || getDefaultUserProfile(),
       tutorialCompleted: Boolean(state.tutorialCompleted),
       tutorialStep: Number.isFinite(state.tutorialStep) ? state.tutorialStep : 0,
-      tutorialIntroSeen: Boolean(state.tutorialIntroSeen)
+      tutorialIntroSeen: Boolean(state.tutorialIntroSeen),
+      createTutorialCompleted: Boolean(state.createTutorialCompleted),
+      createTutorialStep: Number.isFinite(state.createTutorialStep) ? state.createTutorialStep : 0,
+      createTutorialSeen: Boolean(state.createTutorialSeen),
+      pendingInviteOutingId: state.pendingInviteOutingId,
+      pendingInviteCandidates: state.pendingInviteCandidates,
+      pendingInviteSelection: state.pendingInviteSelection
     })
   );
 }
@@ -524,16 +641,22 @@ function showNotificationDetail(notification) {
       : [
           { author: notification.from || "Inabowt", text: notification.description }
         ];
+    const outingHeading = notification.outingTitle || "Your outing";
+    const outingSchedule = notification.outingDate || "Event details";
 
     detail.innerHTML = `
       <div class="notification-detail-panel">
         <div class="notification-detail-header">
           <div class="notification-avatar message">${notification.avatar || "A"}</div>
           <div>
-            <span class="notification-type">Message</span>
-            <h3>${notification.title}</h3>
+            <span class="notification-type">Group chat</span>
+            <h3>${notification.title || outingHeading}</h3>
           </div>
           <button type="button" class="notification-close-detail" data-close-notification-detail>×</button>
+        </div>
+        <div class="notification-outing-summary">
+          <h4>${outingHeading}</h4>
+          <p>${outingSchedule}</p>
         </div>
         <div class="notification-thread">
           ${conversation.map((entry) => `
@@ -959,6 +1082,185 @@ function getApprovedPublicTags(rawTags) {
   return Array.from(new Set(tags.filter((tag) => tag && !/\s/.test(tag)))).slice(0, 3);
 }
 
+function getSuggestedInviteCandidates(event) {
+  const matches = typeof buildParticipantMatches === "function"
+    ? buildParticipantMatches(state.userProfile, event, demoCreateInviteProfiles)
+    : demoCreateInviteProfiles.map((candidate) => ({ ...candidate, score: 75, matchPercent: 75 }));
+
+  return matches.slice(0, 4);
+}
+
+function openTutorialProfileModal(profile) {
+  const profileContent = document.getElementById("details-content");
+  if (!profileContent) return;
+
+  const interests = Array.isArray(profile.interests) && profile.interests.length ? profile.interests.join(" • ") : "Shared vibes";
+  const availability = Array.isArray(profile.availability) && profile.availability.length ? profile.availability.join(", ") : "Flexible";
+  const aboutText = profile.bio || `${profile.name || "This person"} loves good conversation, easy energy, and plans that feel comfortable from the very first hello.`;
+
+  profileContent.innerHTML = `
+    <div class="detail-content">
+      <div class="detail-header">
+        <span class="category-badge">Profile</span>
+        <span class="type-badge public">Recommended match</span>
+      </div>
+      <div class="detail-profile-card">
+        <div class="create-invite-avatar detail-profile-avatar">
+          <img src="${profile.photo || createDummyProfilePhoto({ name: profile.name || "P", background: ["#1d2d5f", "#0c1228"], skin: "#d6a275", shirt: "#43d1c8", hair: "#1b1b1b" })}" alt="${profile.name} portrait" />
+        </div>
+        <h2>${profile.name}</h2>
+        <p>${profile.neighborhood || "Nearby"}</p>
+      </div>
+      <div class="detail-grid">
+        <div class="detail-item"><span>About</span><strong>${aboutText}</strong></div>
+        <div class="detail-item"><span>Interests</span><strong>${interests}</strong></div>
+        <div class="detail-item"><span>Availability</span><strong>${availability}</strong></div>
+        <div class="detail-item"><span>Distance</span><strong>${profile.activityRadius || 10} miles</strong></div>
+        <div class="detail-item"><span>Match</span><strong>${profile.matchPercent || 82}%</strong></div>
+      </div>
+      <div class="detail-actions">
+        <button class="secondary-button" type="button" data-close-modal="details-modal">Close</button>
+      </div>
+    </div>
+  `;
+
+  detailsModal.style.zIndex = "2600";
+  detailsModal.classList.remove("hidden");
+  detailsModal.setAttribute("aria-hidden", "false");
+}
+
+function renderCreateInvitePanel() {
+  const shell = document.getElementById("create-invite-shell");
+  if (!shell) return;
+
+  const event = outings.find((outing) => outing.id === state.pendingInviteOutingId);
+  if (!event) {
+    shell.classList.add("hidden");
+    shell.innerHTML = "";
+    return;
+  }
+
+  const matches = Array.isArray(state.pendingInviteCandidates) && state.pendingInviteCandidates.length
+    ? state.pendingInviteCandidates
+    : getSuggestedInviteCandidates(event);
+
+  state.pendingInviteCandidates = matches;
+  const selected = new Set(state.pendingInviteSelection || []);
+
+  shell.classList.remove("hidden");
+  shell.innerHTML = `
+    <div class="create-invite-header">
+      <p class="eyebrow">Invite people</p>
+      <h3>Suggested matches for ${event.title}</h3>
+    </div>
+    <div class="create-invite-list">
+      ${matches
+        .map((match) => {
+          const id = match.id;
+          const isChecked = selected.has(id) || selected.size === 0 ? "checked" : "";
+          return `
+            <div class="create-invite-item">
+              <input class="invite-profile-checkbox" type="checkbox" value="${id}" ${isChecked} />
+              <div class="create-invite-avatar">
+                <img src="${match.photo || createDummyProfilePhoto({ name: match.name || "P", background: ["#1d2d5f", "#0c1228"], skin: "#d6a275", shirt: "#43d1c8", hair: "#1b1b1b" })}" alt="${match.name} portrait" />
+              </div>
+              <div class="create-invite-info">
+                <div class="create-invite-topline">
+                  <button type="button" class="create-invite-name-button" data-profile-preview-id="${id}">${match.name}</button>
+                  <span class="invite-match-score">${match.matchPercent || 75}% match</span>
+                </div>
+                <small>${match.neighborhood || "Nearby"}</small>
+                <small>${(match.interests || []).slice(0, 2).join(" • ") || "Shared vibes"}</small>
+              </div>
+            </div>
+          `;
+        })
+        .join("")}
+    </div>
+    <div class="create-actions invite-actions">
+      <button type="button" class="secondary-button" id="invite-skip-button">Skip</button>
+      <button type="button" class="primary-button" id="invite-send-button">Send invites</button>
+    </div>
+  `;
+
+  shell.querySelectorAll(".invite-profile-checkbox").forEach((checkbox) => {
+    checkbox.addEventListener("change", () => {
+      const value = checkbox.value;
+      const nextSelection = new Set(state.pendingInviteSelection || []);
+      if (checkbox.checked) {
+        nextSelection.add(value);
+      } else {
+        nextSelection.delete(value);
+      }
+      state.pendingInviteSelection = Array.from(nextSelection);
+      persistSavedState();
+    });
+  });
+
+  shell.querySelectorAll(".create-invite-name-button").forEach((button) => {
+    button.addEventListener("click", () => {
+      const profile = matches.find((match) => match.id === button.dataset.profilePreviewId);
+      if (profile) {
+        openTutorialProfileModal(profile);
+      }
+    });
+  });
+
+  const skipButton = shell.querySelector("#invite-skip-button");
+  if (skipButton) {
+    skipButton.addEventListener("click", () => {
+      closeCreateModal();
+      showToast("Outing published — invite flow skipped.");
+    });
+  }
+
+  const sendButton = shell.querySelector("#invite-send-button");
+  if (sendButton) {
+    sendButton.addEventListener("click", () => {
+      const selected = Array.from(shell.querySelectorAll(".invite-profile-checkbox:checked")).map((checkbox) => checkbox.value);
+      if (!selected.length) {
+        showToast("Select at least one person to invite.");
+        return;
+      }
+
+      const eventId = state.pendingInviteOutingId;
+      const eventTitle = outings.find((outing) => outing.id === eventId)?.title || "your outing";
+      state.pendingInviteSelection = selected;
+      persistSavedState();
+      addNotification({
+        id: `invite-flow-${eventId}-${Date.now()}`,
+        type: "message",
+        title: "Invites are on the way",
+        description: `You invited ${selected.length} ${selected.length === 1 ? "person" : "people"} to ${eventTitle}.`,
+        timestamp: new Date().toISOString(),
+        unread: true,
+        dismissed: false,
+        avatar: "I",
+        source: "activity",
+        from: "Inabowt",
+        destination: { screen: "plans", outingId: eventId }
+      });
+      showToast(`Invites sent to ${selected.length} ${selected.length === 1 ? "match" : "matches"}.`);
+      closeCreateModal();
+      renderPlansScreen();
+      renderNotifications();
+      setActiveScreen("plans");
+    });
+  }
+}
+
+function hideCreateInvitePanel() {
+  const shell = document.getElementById("create-invite-shell");
+  if (shell) {
+    shell.classList.add("hidden");
+    shell.innerHTML = "";
+  }
+  state.pendingInviteOutingId = null;
+  state.pendingInviteCandidates = [];
+  state.pendingInviteSelection = [];
+  persistSavedState();
+}
+
 function renderTypeToggle() {
   document.querySelectorAll(".outing-type-option").forEach((button) => {
     const isActive = button.dataset.outingType === state.activeType;
@@ -1232,7 +1534,7 @@ const tutorialSteps = [
     body: "Stay up to date in one place. See invitations, activity updates, and recommended outings without having to constantly search for what's happening.",
     instruction: "Open the notification center and review the unified feed and destination actions.",
     primaryLabel: "NEXT",
-    target: "#notification-button, #notification-center",
+    target: "#notification-center",
     screen: "discover",
     action: () => {
       setActiveScreen("discover");
@@ -1241,24 +1543,11 @@ const tutorialSteps = [
     }
   },
   {
-    eyebrow: "CARD 14 — THE BIGGER PICTURE",
-    headline: "MORE THAN JUST FINDING SOMETHING TO DO.",
-    body: "Inabowt is designed to make meeting people easier. By bringing shared interests and activities together, the platform can take some of the work out of making connections and help turn plans into real-world experiences.",
-    instruction: "Follow the flow from Discover to joining, invitations, and My Plans.",
-    primaryLabel: "NEXT",
-    target: ".outing-feed, #plans-content, #notification-button",
-    screen: "discover",
-    action: () => {
-      setActiveScreen("discover");
-      renderDiscoverContent();
-    }
-  },
-  {
     eyebrow: "CARD 15 — FINAL INVITATION",
     headline: "YOUR PEOPLE ARE OUT THERE.",
     body: "Discover something new. Meet people with shared interests. Experience more of life together.\n\nINABOWT — THE FUTURE OF SOCIAL CONNECTION.",
     instruction: "You're ready. Head back into the app and start exploring.",
-    primaryLabel: "FIND YOUR PEOPLE"
+    primaryLabel: "START OUTING TUTORIAL"
   }
 ];
 
@@ -1297,6 +1586,17 @@ function showTutorialIntroSplash() {
   }, 1800);
 }
 
+function returnToDiscoverAfterTutorial() {
+  setActiveScreen("discover");
+  closeNotificationCenter();
+  const button = document.getElementById("notification-button");
+  if (button) {
+    button.style.position = "fixed";
+    button.style.top = "1.2rem";
+    button.style.right = "max(1rem, calc((100vw - min(var(--content-max), calc(100% - 2rem))) / 2 + 0.75rem))";
+  }
+}
+
 function renderTutorial() {
   const root = document.getElementById("tutorial-root");
   if (!root) return;
@@ -1306,6 +1606,7 @@ function renderTutorial() {
     root.classList.add("hidden");
     root.innerHTML = "";
     clearTutorialFocus();
+    returnToDiscoverAfterTutorial();
     return;
   }
 
@@ -1342,7 +1643,6 @@ function renderTutorial() {
   root.innerHTML = `
     <div class="tutorial-surface ${isGuidedStep ? "tutorial-surface--guided" : "tutorial-surface--cinematic"}">
       <div class="tutorial-card">
-        <p class="tutorial-eyebrow">${activeStep.eyebrow}</p>
         <h2>${activeStep.headline}</h2>
         <p>${(activeStep.body || "").replace(/\n\n/g, "</p><p>")}</p>
         <div class="tutorial-actions">
@@ -1371,7 +1671,8 @@ function renderTutorial() {
       state.tutorialCompleted = true;
       state.tutorialStep = 0;
       persistSavedState();
-      renderTutorial();
+      returnToDiscoverAfterTutorial();
+      startCreateTutorial();
       return;
     }
 
@@ -1393,6 +1694,7 @@ function renderTutorial() {
     state.tutorialCompleted = true;
     state.tutorialStep = 0;
     persistSavedState();
+    returnToDiscoverAfterTutorial();
     renderTutorial();
   });
 }
@@ -1409,6 +1711,331 @@ function initTutorial() {
     }
 
     renderTutorial();
+  }
+}
+
+const createTutorialSteps = [
+  {
+    headline: "Create an Outing Tutorial",
+    body: "Learn how to create an outing, discover people who share your interests, and bring your group together—from the first idea to your first invitation.",
+    primaryLabel: "NEXT",
+    action: () => {
+      setActiveScreen("discover");
+      handleOpenCreatePlaceholder();
+      resetCreateForm();
+      setCreateType("PUBLIC_OUTING");
+    },
+    target: "#create-modal, #create-outing-form"
+  },
+  {
+    headline: "THE OUTING FORM",
+    body: "The form is already filled with a realistic example so you can see how the outing details come together before publishing.",
+    primaryLabel: "PUBLISH FAKE OUTING",
+    action: () => {
+      setActiveScreen("discover");
+      handleOpenCreatePlaceholder();
+      setCreateType("PUBLIC_OUTING");
+      const demoDate = new Date(Date.now() + 6 * 24 * 60 * 60 * 1000);
+      document.getElementById("create-title-field").value = "Sunset Rooftop Mixer";
+      document.getElementById("create-category-field").value = "Entertainment";
+      document.getElementById("create-description-field").value = "A relaxed rooftop hangout for meeting new people and swapping recommendations over a drink.";
+      document.getElementById("create-date-field").value = demoDate.toISOString().slice(0, 10);
+      document.getElementById("create-time-field").value = "19:30";
+      document.getElementById("create-location-field").value = "Riverside Rooftop";
+      document.getElementById("create-cost-field").value = "$18";
+      document.getElementById("create-capacity-field").value = "12";
+      document.getElementById("create-public-tags").value = "Sunset, Social, Rooftop";
+      createFormActions.classList.remove("hidden");
+      createPublishActions.classList.add("hidden");
+      createPreviewPanel.classList.add("hidden");
+      createPreviewPanel.innerHTML = "";
+    },
+    target: "#create-outing-form, #create-form-shell"
+  },
+  {
+    headline: "MATCHES AFTER YOU PUBLISH",
+    body: "Once the outing is submitted, Inabowt shows a shortlist of likely matches. You can click each profile to review them before sending invites.",
+    primaryLabel: "NEXT",
+    action: () => {
+      const event = outings[outings.length - 1] || {
+        id: `tutorial-demo-${Date.now()}`,
+        title: "Sunset Rooftop Mixer",
+        category: "Entertainment",
+        date: new Date(Date.now() + 6 * 24 * 60 * 60 * 1000).toISOString(),
+        location: "Riverside Rooftop",
+        address: "Riverside Rooftop",
+        budget: "$18",
+        outingType: "PUBLIC_OUTING",
+        participationType: "PUBLIC_OUTING",
+        description: "A relaxed rooftop hangout for meeting new people and swapping recommendations over a drink.",
+        tags: ["Sunset", "Social", "Rooftop"]
+      };
+
+      document.getElementById("create-form-shell")?.classList.add("hidden");
+      document.getElementById("create-preview-panel")?.classList.add("hidden");
+      document.getElementById("create-form-actions")?.classList.add("hidden");
+      document.getElementById("create-publish-actions")?.classList.add("hidden");
+
+      state.pendingInviteOutingId = event.id;
+      state.pendingInviteCandidates = demoCreateInviteProfiles.slice(0, 4).map((candidate) => ({ ...candidate, matchPercent: 82 }));
+      state.pendingInviteSelection = [];
+      persistSavedState();
+      renderCreateInvitePanel();
+      createModal.classList.remove("hidden");
+      createModal.setAttribute("aria-hidden", "false");
+    },
+    target: "#create-invite-shell"
+  },
+  {
+    headline: "A NEW MATCH IS READY",
+    body: "Learn how to create an outing, discover people who share your interests, and bring your group together - from the first idea to your first invitation.",
+    primaryLabel: "NEXT",
+    action: () => {
+      closeCreateModal();
+      closeDetailsModal();
+      const person = demoCreateInviteProfiles[0];
+      addNotification({
+        id: `tutorial-match-${Date.now()}`,
+        type: "recommendation",
+        title: "We found you a new match for your event",
+        description: `${person.name} is a strong match for your event and shares your interests.`,
+        timestamp: new Date().toISOString(),
+        unread: true,
+        dismissed: false,
+        avatar: String(person.name || "N").slice(0, 1),
+        source: "person",
+        from: person.name,
+        destination: { screen: "plans" }
+      });
+      ensureNotificationReady();
+      openNotificationCenter();
+    },
+    target: "#notification-center"
+  },
+  {
+    headline: "GROUP CHAT SOON",
+    body: "A group chat is created for the event once two or more people accept the invitation. Inabowt keeps everyone connected from the first match to the final plan.",
+    primaryLabel: "DONE",
+    action: () => {
+      closeCreateModal();
+      closeDetailsModal();
+
+      const chatNotification = {
+        id: `tutorial-chat-${Date.now()}`,
+        type: "message",
+        title: "Sunset Rooftop Mixer",
+        description: "Your outing is now live in the group chat.",
+        timestamp: new Date().toISOString(),
+        unread: true,
+        dismissed: false,
+        avatar: "G",
+        source: "group-chat",
+        from: "Inabowt",
+        outingTitle: "Sunset Rooftop Mixer",
+        outingDate: "Riverside Rooftop • Fri • 7:30 PM",
+        conversation: [
+          { author: "Nina", text: "I’m in. This looks like a great time." },
+          { author: "Omar", text: "Same here. I can make the rooftop by 7:30." },
+          { author: "You", text: "Perfect — let’s meet at the entrance and grab a table." }
+        ],
+        destination: { screen: "plans" }
+      };
+
+      addNotification(chatNotification);
+      ensureNotificationReady();
+      openNotificationCenter();
+      showNotificationDetail(state.notifications.find((item) => item.id === chatNotification.id) || chatNotification);
+    },
+    target: "#notification-center"
+  }
+];
+
+function startCreateTutorial() {
+  state.createTutorialCompleted = false;
+  state.createTutorialStep = 0;
+  state.createTutorialSeen = true;
+  persistSavedState();
+  renderCreateTutorial();
+}
+
+function publishCreateTutorialDemoOuting() {
+  const demoDate = new Date(Date.now() + 6 * 24 * 60 * 60 * 1000);
+  const demoValues = {
+    outingType: "PUBLIC_OUTING",
+    title: "Sunset Rooftop Mixer",
+    category: "Entertainment",
+    description: "A relaxed rooftop hangout for meeting new people and swapping recommendations over a drink.",
+    date: demoDate.toISOString().slice(0, 10),
+    time: "19:30",
+    location: "Riverside Rooftop",
+    cost: "$18",
+    capacity: "12",
+    image: "assets/images/events/rooftop.jpg",
+    publicTags: ["Sunset", "Social", "Rooftop"],
+    privateTags: ["Sunset", "Social", "Rooftop"]
+  };
+
+  const candidateId = `sunset-rooftop-${Date.now().toString().slice(-5)}`;
+  const createdEvent = {
+    id: candidateId,
+    title: demoValues.title,
+    category: demoValues.category,
+    date: `${demoValues.date}T${demoValues.time || "18:00"}:00`,
+    location: demoValues.location,
+    address: demoValues.location,
+    budget: demoValues.cost,
+    outingType: demoValues.outingType,
+    participationType: demoValues.outingType,
+    description: demoValues.description,
+    image: normalizeImageValue(demoValues.image),
+    tags: normalizePublicTags(demoValues.publicTags),
+    curated: false,
+    creatorName: "You",
+    attendance: "0 interested",
+    capacity: Math.max(3, Number(demoValues.capacity || 12)),
+    locationType: "custom",
+    coordinates: getLocationCoords({ location: demoValues.location, address: demoValues.location }),
+    createdByUser: true,
+    selectedProfiles: []
+  };
+
+  outings.push(createdEvent);
+  state.createdOutings.push(createdEvent.id);
+  state.createdByUser[createdEvent.id] = true;
+  state.persistedOutings = outings.filter((outing) => state.createdOutings.includes(outing.id));
+  state.activeType = "PUBLIC_OUTING";
+  hideCreateInvitePanel();
+  setActiveScreen("discover");
+  renderTypeToggle();
+  renderOutings();
+  renderPlansScreen();
+  renderDiscoverContent();
+  resetCreateForm();
+
+  if (createModal) {
+    createModal.classList.add("hidden");
+    createModal.setAttribute("aria-hidden", "true");
+  }
+
+  return createdEvent;
+}
+
+function renderCreateTutorial() {
+  const root = document.getElementById("tutorial-root");
+  if (!root) return;
+
+  const stepIndex = Math.min(Math.max(0, Number(state.createTutorialStep) || 0), createTutorialSteps.length - 1);
+  const activeStep = createTutorialSteps[stepIndex];
+
+  root.classList.remove("hidden");
+  root.classList.toggle("tutorial-root--guided", stepIndex > 0);
+  root.classList.toggle("tutorial-root--intro", stepIndex === 0);
+  root.innerHTML = `
+    <div class="tutorial-surface ${stepIndex === 0 ? "tutorial-surface--intro" : "tutorial-surface--guided"}">
+      <div class="tutorial-card">
+        <h2>${activeStep.headline}</h2>
+        <p>${activeStep.body}</p>
+        <div class="tutorial-actions">
+          <div class="tutorial-progress">${createTutorialSteps.map((_, idx) => `<span class="${idx === stepIndex ? "is-active" : ""}"></span>`).join("")}</div>
+          <div class="tutorial-actions-row">
+            <button type="button" class="secondary-button compact" data-create-tutorial-action="close">Close</button>
+            <button type="button" class="secondary-button compact" data-create-tutorial-action="back" ${stepIndex === 0 ? "disabled" : ""}>Back</button>
+            <button type="button" class="primary-button compact" data-create-tutorial-action="next">${activeStep.primaryLabel}</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  const nextButton = root.querySelector("[data-create-tutorial-action='next']");
+  const backButton = root.querySelector("[data-create-tutorial-action='back']");
+  const closeButton = root.querySelector("[data-create-tutorial-action='close']");
+
+  if (stepIndex >= 2) {
+    document.getElementById("create-form-shell")?.classList.add("hidden");
+    document.getElementById("create-preview-panel")?.classList.add("hidden");
+    document.getElementById("create-form-actions")?.classList.add("hidden");
+    document.getElementById("create-publish-actions")?.classList.add("hidden");
+  }
+
+  nextButton?.addEventListener("click", () => {
+    if (stepIndex === 1) {
+      const demoDate = new Date(Date.now() + 6 * 24 * 60 * 60 * 1000);
+      document.getElementById("create-title-field").value = "Sunset Rooftop Mixer";
+      document.getElementById("create-category-field").value = "Entertainment";
+      document.getElementById("create-description-field").value = "A relaxed rooftop hangout for meeting new people and swapping recommendations over a drink.";
+      document.getElementById("create-date-field").value = demoDate.toISOString().slice(0, 10);
+      document.getElementById("create-time-field").value = "19:30";
+      document.getElementById("create-location-field").value = "Riverside Rooftop";
+      document.getElementById("create-cost-field").value = "$18";
+      document.getElementById("create-capacity-field").value = "12";
+      document.getElementById("create-public-tags").value = "Sunset, Social, Rooftop";
+      showCreatePreview();
+      publishCreatedOuting();
+      state.createTutorialStep = 2;
+      persistSavedState();
+      renderCreateTutorial();
+      return;
+    }
+
+    if (stepIndex === 2) {
+      state.createTutorialStep = 3;
+      persistSavedState();
+      renderCreateTutorial();
+      return;
+    }
+
+    if (stepIndex === 3) {
+      state.createTutorialStep = 4;
+      persistSavedState();
+      renderCreateTutorial();
+      return;
+    }
+
+    if (stepIndex >= createTutorialSteps.length - 1) {
+      state.createTutorialCompleted = true;
+      state.createTutorialStep = 0;
+      persistSavedState();
+      root.classList.add("hidden");
+      root.innerHTML = "";
+      closeCreateModal();
+      closeDetailsModal();
+      returnToDiscoverAfterTutorial();
+      return;
+    }
+
+    state.createTutorialStep = stepIndex + 1;
+    persistSavedState();
+    renderCreateTutorial();
+  });
+
+  backButton?.addEventListener("click", () => {
+    if (stepIndex > 0) {
+      state.createTutorialStep = stepIndex - 1;
+      persistSavedState();
+      renderCreateTutorial();
+    }
+  });
+
+  closeButton?.addEventListener("click", () => {
+    state.createTutorialCompleted = true;
+    state.createTutorialStep = 0;
+    persistSavedState();
+    root.classList.add("hidden");
+    root.innerHTML = "";
+    returnToDiscoverAfterTutorial();
+  });
+
+  if (activeStep?.action) {
+    activeStep.action();
+  }
+
+  if (activeStep?.target) {
+    document.querySelectorAll(".tutorial-focus").forEach((node) => node.classList.remove("tutorial-focus"));
+    const target = document.querySelector(activeStep.target);
+    if (target) {
+      target.classList.add("tutorial-focus");
+    }
   }
 }
 
@@ -2352,12 +2979,14 @@ function publishCreatedOuting() {
 
   persistSavedState();
   resetCreateForm();
-  closeCreateModal();
   renderTypeToggle();
   renderOutings();
   renderPlansScreen();
   setActiveScreen("discover");
   renderDiscoverContent();
+  openInviteFlowAfterCreate(createdEvent);
+  createModal.classList.remove("hidden");
+  createModal.setAttribute("aria-hidden", "false");
   showToast(`${outingTypeMeta[type].label} published`);
 }
 
@@ -2365,6 +2994,7 @@ function closeCreateModal() {
   createModal.classList.add("hidden");
   createModal.setAttribute("aria-hidden", "true");
   resetCreateForm();
+  hideCreateInvitePanel();
 }
 
 function closeNavDrawer() {
@@ -2418,8 +3048,22 @@ function setActiveScreen(screenName) {
 
 function handleOpenCreatePlaceholder() {
   resetCreateForm();
+  hideCreateInvitePanel();
   createModal.classList.remove("hidden");
   createModal.setAttribute("aria-hidden", "false");
+  if (!state.createTutorialSeen) {
+    state.createTutorialSeen = true;
+    persistSavedState();
+    startCreateTutorial();
+  }
+}
+
+function openInviteFlowAfterCreate(event) {
+  state.pendingInviteOutingId = event.id;
+  state.pendingInviteCandidates = getSuggestedInviteCandidates(event);
+  state.pendingInviteSelection = state.pendingInviteCandidates.slice(0, 3).map((entry) => entry.id);
+  persistSavedState();
+  renderCreateInvitePanel();
 }
 
 if (createImageFileInput) {
@@ -2582,9 +3226,26 @@ if (navDrawerBackdrop) {
 
 document.querySelectorAll(".nav-drawer-link").forEach((button) => {
   button.addEventListener("click", () => {
+    if (button.classList.contains("nav-submenu-trigger")) {
+      const item = button.closest(".nav-submenu");
+      const panel = item?.querySelector(".nav-submenu-panel");
+      const isOpen = panel && !panel.classList.contains("hidden");
+      if (panel) {
+        panel.classList.toggle("hidden", isOpen);
+        button.setAttribute("aria-expanded", String(!isOpen));
+      }
+      return;
+    }
+
     if (button.dataset.createNav === "true") {
       handleOpenCreatePlaceholder();
       closeNavDrawer();
+      return;
+    }
+
+    if (button.dataset.createTutorial === "true") {
+      closeNavDrawer();
+      startCreateTutorial();
       return;
     }
 

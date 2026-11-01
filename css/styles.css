@@ -146,11 +146,12 @@ textarea:focus-visible {
   align-items: center;
   min-width: 0;
   margin-left: 0;
-  padding-left: 4.25rem;
+  padding-left: 0;
+  transform: translateX(0.2rem);
 }
 
 .brand-logo {
-  width: min(440px, 46vw);
+  width: min(305px, 31.5vw);
   height: auto;
   filter: drop-shadow(0 0 14px rgba(0, 217, 255, 0.18));
 }
@@ -201,6 +202,35 @@ textarea:focus-visible {
 .nav-drawer-links {
   display: grid;
   gap: 0.6rem;
+}
+
+.nav-submenu {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.nav-submenu-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.nav-submenu-trigger::after {
+  content: "▾";
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.nav-submenu-panel {
+  display: grid;
+  gap: 0.45rem;
+  padding-left: 0.5rem;
+}
+
+.nav-submenu-link {
+  background: rgba(12, 19, 29, 0.8);
+  border-color: rgba(255, 255, 255, 0.05);
+  padding-left: 0.9rem;
 }
 
 .nav-drawer-link {
@@ -282,8 +312,8 @@ textarea:focus-visible {
   margin: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.15em;
-  font-size: clamp(1.8rem, 2.9vw, 3.5rem);
+  gap: 0.28em;
+  font-size: clamp(1.5rem, 2.4vw, 2.9rem);
   line-height: 0.96;
   letter-spacing: -0.06em;
 }
@@ -1283,8 +1313,10 @@ textarea:focus-visible {
 
 .notification-button {
   position: fixed;
+  left: auto;
   right: max(1rem, calc((100vw - min(var(--content-max), calc(100% - 2rem))) / 2 + 0.75rem));
   top: 1.2rem;
+  transform: none;
   z-index: 35;
   display: inline-flex;
   align-items: center;
@@ -1582,6 +1614,33 @@ textarea:focus-visible {
   font-size: 1.5rem;
 }
 
+.notification-outing-summary {
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.8rem 0.9rem;
+  border: 1px solid rgba(0, 217, 255, 0.18);
+  border-radius: var(--radius-md);
+  background: linear-gradient(180deg, rgba(0, 217, 255, 0.08), rgba(8, 102, 255, 0.04));
+}
+
+.notification-outing-summary-topline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.notification-outing-summary h4 {
+  margin: 0;
+  font-size: 1.1rem;
+  letter-spacing: -0.03em;
+}
+
+.notification-outing-summary p {
+  margin: 0;
+  color: var(--muted-strong);
+  line-height: 1.5;
+}
+
 .notification-thread {
   display: grid;
   gap: 0.75rem;
@@ -1620,7 +1679,7 @@ textarea:focus-visible {
 .tutorial-root {
   position: fixed;
   inset: 0;
-  z-index: 2000;
+  z-index: 2300;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1633,6 +1692,11 @@ textarea:focus-visible {
 
 .tutorial-root.hidden {
   display: none;
+}
+
+.tutorial-root--intro {
+  background: rgba(5, 9, 17, 0.68);
+  backdrop-filter: blur(8px);
 }
 
 .tutorial-root--guided {
@@ -1781,6 +1845,11 @@ textarea:focus-visible {
   text-shadow: 0 0 26px rgba(0, 217, 255, 0.18);
 }
 
+.tutorial-card h2 strong,
+.tutorial-card strong {
+  color: var(--cyan) !important;
+}
+
 .tutorial-root--guided .tutorial-card h2 {
   font-size: clamp(1rem, 1.8vw, 1.5rem);
   letter-spacing: -0.04em;
@@ -1802,6 +1871,10 @@ textarea:focus-visible {
 body .tutorial-card strong {
   color: var(--cyan) !important;
   letter-spacing: -0.02em;
+}
+
+.tutorial-root .notification-button {
+  display: none !important;
 }
 
 .tutorial-focus {
@@ -2053,7 +2126,7 @@ body .tutorial-card strong {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 30;
+  z-index: 1800;
   opacity: 0;
   visibility: hidden;
   transition: opacity 0.2s ease, visibility 0.2s ease;
@@ -2362,6 +2435,138 @@ body .tutorial-card strong {
 
 .private-profile-item small {
   color: var(--muted);
+}
+
+.create-invite-shell {
+  margin-top: 1.2rem;
+  padding-top: 1.1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.create-invite-header {
+  margin-bottom: 0.9rem;
+}
+
+.create-invite-header h3 {
+  margin: 0.2rem 0 0;
+  font-size: clamp(1.4rem, 2vw, 2rem);
+  letter-spacing: -0.04em;
+}
+
+.create-invite-list {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.create-invite-item {
+  display: grid;
+  grid-template-columns: auto auto 1fr;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.8rem 0.9rem;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: var(--radius-md);
+  background: rgba(11, 19, 29, 0.72);
+  cursor: pointer;
+}
+
+.create-invite-item input {
+  accent-color: var(--cyan);
+}
+
+.create-invite-avatar {
+  width: 2.5rem;
+  height: 2.5rem;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(0, 217, 255, 0.18), rgba(8, 102, 255, 0.28));
+  color: var(--text);
+  font-weight: 800;
+  overflow: hidden;
+}
+
+.create-invite-avatar img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+.create-invite-info {
+  display: grid;
+  gap: 0.1rem;
+}
+
+.create-invite-topline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.create-invite-topline strong {
+  color: var(--text);
+}
+
+.invite-match-score {
+  color: var(--cyan);
+  font-size: 0.74rem;
+  font-weight: 700;
+}
+
+.create-invite-item small {
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.create-invite-name-button {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  color: var(--text);
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+}
+
+.create-invite-name-button:hover,
+.create-invite-name-button:focus-visible {
+  color: var(--cyan);
+  outline: none;
+}
+
+.detail-profile-card {
+  display: grid;
+  gap: 0.55rem;
+  justify-items: center;
+  padding: 0.85rem 0.75rem 0.3rem;
+  text-align: center;
+}
+
+.detail-profile-card h2 {
+  margin: 0;
+  font-size: clamp(1.6rem, 3vw, 2.2rem);
+  letter-spacing: -0.04em;
+}
+
+.detail-profile-card p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.detail-profile-avatar {
+  width: 3.4rem;
+  height: 3.4rem;
+  font-size: 1.2rem;
+  background: linear-gradient(135deg, rgba(0, 217, 255, 0.2), rgba(8, 102, 255, 0.28));
+  box-shadow: 0 12px 32px rgba(0, 217, 255, 0.2);
+}
+
+.invite-actions {
+  margin-top: 1rem;
 }
 
 .create-preview-panel {

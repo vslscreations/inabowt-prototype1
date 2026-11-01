@@ -11,7 +11,7 @@
     <link rel="icon" type="image/png" href="assets/images/apple-touch-icon.png" />
     <link rel="apple-touch-icon" href="assets/images/apple-touch-icon.png" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
-    <link rel="stylesheet" href="css/styles.css?v=20261031-tutorial-polish-6" />
+    <link rel="stylesheet" href="css/styles.css?v=20261031-tutorial-polish-7" />
   </head>
   <body>
     <div class="app-shell">
@@ -51,8 +51,17 @@
             <button class="nav-drawer-link" data-screen="discover" data-local-feed="true" type="button">Local Feed</button>
             <button class="nav-drawer-link" data-screen="plans" type="button">My Plans</button>
             <button class="nav-drawer-link" data-create-nav="true" type="button">Create an Outing</button>
-            <button class="nav-drawer-link" data-tutorial="true" type="button">Tutorial</button>
             <button class="nav-drawer-link" data-screen="profile" type="button">Profile</button>
+
+            <div class="nav-submenu" aria-label="Tutorials submenu">
+              <button class="nav-drawer-link nav-submenu-trigger" type="button" aria-expanded="false">
+                Tutorials
+              </button>
+              <div class="nav-submenu-panel hidden" role="menu" aria-label="Tutorial options">
+                <button class="nav-drawer-link nav-submenu-link" data-tutorial="true" type="button">Introduction to Inabowt</button>
+                <button class="nav-drawer-link nav-submenu-link" data-create-tutorial="true" type="button">Create an Outing tutorial</button>
+              </div>
+            </div>
           </nav>
         </aside>
       </div>
@@ -132,7 +141,7 @@
           </section>
 
           <div class="discover-view-toggle" role="tablist" aria-label="Discover view selector">
-            <button type="button" class="discover-view-option is-active" data-discover-view="regular" role="tab" aria-selected="true">Regular</button>
+            <button type="button" class="discover-view-option is-active" data-discover-view="regular" role="tab" aria-selected="true">Discover</button>
             <button type="button" class="discover-view-option" data-discover-view="calendar" role="tab" aria-selected="false">Calendar</button>
             <button type="button" class="discover-view-option" data-discover-view="map" role="tab" aria-selected="false">Map</button>
           </div>
@@ -498,6 +507,8 @@
             </div>
           </form>
         </div>
+
+        <div id="create-invite-shell" class="create-invite-shell hidden" aria-live="polite"></div>
       </div>
     </div>
 
@@ -505,6 +516,7 @@
     <div id="tutorial-root" class="tutorial-root hidden" aria-live="polite"></div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script src="js/matching.js"></script>
     <script src="js/data.js?v=20261031-tutorial-polish-6"></script>
     <script src="js/app.js?v=20261031-tutorial-polish-6"></script>
   </body>
