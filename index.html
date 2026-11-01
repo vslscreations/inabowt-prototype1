@@ -48,7 +48,7 @@
 
           <nav class="nav-drawer-links" aria-label="Main navigation">
             <button class="nav-drawer-link is-active" data-screen="discover" type="button">Discover</button>
-            <button class="nav-drawer-link" data-screen="discover" data-local-feed="true" type="button">Local Feed</button>
+            <button class="nav-drawer-link" data-screen="local-feed" type="button">Local Feed</button>
             <button class="nav-drawer-link" data-screen="plans" type="button">My Plans</button>
             <button class="nav-drawer-link" data-create-nav="true" type="button">Create an Outing</button>
             <button class="nav-drawer-link" data-screen="profile" type="button">Profile</button>
@@ -101,7 +101,6 @@
         <section id="discover-page" class="screen is-active" aria-label="Discover screen">
           <section class="hero-panel">
             <div class="hero-copy">
-              <p class="eyebrow">Explore local experiences, meet like-minded people, and make plans in real life</p>
               <h1>
                 <span>DON'T JUST FIND SOMETHING TO DO.</span>
                 <span>FIND SOMEONE TO DO IT WITH.</span>
@@ -185,7 +184,25 @@
             <div id="discover-map" aria-label="Map of Las Vegas outings"></div>
           </section>
 
-          <section id="news-feed" class="news-feed" aria-label="Community news feed"></section>
+        </section>
+
+        <section id="local-feed-page" class="screen" aria-label="Local Feed screen">
+          <section class="local-feed-hero">
+            <div class="hero-copy">
+              <h1>
+                <span>YOUR CITY IS ACTIVE.</span>
+                <span>THERE'S ALWAYS SOMETHING HAPPENING.</span>
+              </h1>
+            </div>
+          </section>
+
+          <div class="local-feed-status" aria-label="Activity summary">
+            <span class="local-feed-badge">Live now</span>
+            <span class="local-feed-badge">Popular this week</span>
+            <span class="local-feed-badge">Neighborhood favorites</span>
+          </div>
+
+          <section id="local-feed-content" class="local-feed-content" aria-live="polite"></section>
         </section>
 
         <section id="plans-page" class="screen" aria-label="My Plans screen">

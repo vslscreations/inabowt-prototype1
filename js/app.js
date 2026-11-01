@@ -20,6 +20,7 @@ const navDropdowns = document.querySelectorAll("[data-nav-dropdown]");
 const planSectionButtons = document.querySelectorAll("[data-plan-section]");
 const screens = {
   discover: document.getElementById("discover-page"),
+  "local-feed": document.getElementById("local-feed-page"),
   plans: document.getElementById("plans-page"),
   profile: document.getElementById("profile-page")
 };
@@ -1342,7 +1343,6 @@ function toggleNavDropdown(dropdown) {
 
 function renderDiscoverContent() {
   renderDiscoverView();
-  renderNewsFeed();
 
   if (state.discoverView === "regular") {
     renderOutings();
@@ -1357,35 +1357,39 @@ function renderDiscoverContent() {
   renderMapView();
 }
 
-function renderNewsFeed() {
-  const feed = document.getElementById("news-feed");
+function renderLocalFeedPage() {
+  const feed = document.getElementById("local-feed-content");
   if (!feed) return;
 
   const entries = Array.isArray(window.demoNewsFeed) ? window.demoNewsFeed : [];
+
   if (!entries.length) {
     feed.innerHTML = `
       <div class="placeholder-panel no-results">
-        <p class="eyebrow">News Feed</p>
-        <h2>Community updates are on the way.</h2>
-        <p>Check back soon for community storyboards and demo activity updates.</p>
+        <p class="eyebrow">Local Feed</p>
+        <h2>Good things are happening in the city.</h2>
+        <p>New neighborhood plans and community moments will show up here soon.</p>
       </div>
     `;
     return;
   }
 
   feed.innerHTML = `
-    <div class="news-feed-header">
-      <p class="eyebrow">News Feed</p>
-      <h2>What the community is up to</h2>
+    <div class="local-feed-header">
+      <div>
+        <p class="eyebrow">Local Feed</p>
+        <h2>What’s happening in Las Vegas</h2>
+      </div>
+      <span class="feed-meta">Fresh this week</span>
     </div>
-    <div class="news-feed-grid">
+    <div class="local-feed-grid">
       ${entries
         .map((entry) => {
-          const label = entry.label || (entry.kind === "story" ? "Demo success story" : "Demo private community update");
+          const label = entry.label || (entry.kind === "story" ? "Local favorite" : "City update");
           return `
-            <article class="news-card ${entry.kind === "story" ? "story" : "activity"}">
-              <div class="news-card-top">
-                <span class="news-card-tag">${label}</span>
+            <article class="local-feed-card ${entry.kind === "story" ? "story" : "activity"}">
+              <div class="local-feed-card-top">
+                <span class="local-feed-tag">${label}</span>
               </div>
               <h3>${entry.title}</h3>
               <p>${entry.description}</p>
@@ -1811,7 +1815,7 @@ const createTutorialSteps = [
     target: "#notification-center"
   },
   {
-    headline: "GROUP CHAT SOON",
+    headline: "GROUP CHAT",
     body: "A group chat is created for the event once two or more people accept the invitation. Inabowt keeps everyone connected from the first match to the final plan.",
     primaryLabel: "DONE",
     action: () => {
@@ -3016,6 +3020,8 @@ function openNavDrawer() {
 }
 
 function setActiveScreen(screenName) {
+  document.body.classList.toggle("local-feed-active", screenName === "local-feed");
+
   Object.entries(screens).forEach(([key, screen]) => {
     screen.classList.toggle("is-active", key === screenName);
   });
@@ -3037,6 +3043,10 @@ function setActiveScreen(screenName) {
 
   if (screenName === "discover") {
     renderDiscoverContent();
+  }
+
+  if (screenName === "local-feed") {
+    renderLocalFeedPage();
   }
 
   if (screenName === "profile") {
@@ -3254,19 +3264,6 @@ document.querySelectorAll(".nav-drawer-link").forEach((button) => {
       persistSavedState();
       closeNavDrawer();
       renderTutorial();
-      return;
-    }
-
-    if (button.dataset.localFeed === "true") {
-      state.discoverView = "regular";
-      persistSavedState();
-      renderDiscoverView();
-      setActiveScreen("discover");
-      closeNavDrawer();
-      const feed = document.getElementById("news-feed");
-      if (feed) {
-        feed.scrollIntoView({ behavior: "smooth", block: "start" });
-      }
       return;
     }
 
